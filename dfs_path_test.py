@@ -70,7 +70,6 @@ def get_extrapoled_line(p1, p2, extrapol_ratio):  # 按照比率生成p1和p2之
 def tie_outside_node(gpd_df_nodes, gpd_df_network):
     """For each outside node, find the nearest line inside the buffer. The buffer
     grows if no lines are found.  """
-    global nearest_point
     graph = read_shape_file_to_graph(INPUT_NETWORK_FILE_SHP)
     for x in range(0, len(gpd_df_nodes)):
         source_target_nodes_geom = gpd_df_nodes.geometry[x]  # round geopandas rows'geometry to wkt
@@ -87,13 +86,12 @@ def tie_outside_node(gpd_df_nodes, gpd_df_network):
             # Make a coordinate tuple. Check if it's a first or last node
             near_first_node = nearest_p.distance((Point(nearest_line_geometry.coords[0])))
             near_last_node = nearest_p.distance((Point(nearest_line_geometry.coords[-1])))
-            if near_first_node <= near_last_node or near_first_node <= END_NODE_TOLERANCE:
-                nearest_point = Point(nearest_line_geometry.coords[0])
-                # graph.add_edge(source_target_nodes_geom, nearest_point)
-            elif near_first_node >= near_last_node or near_last_node <= END_NODE_TOLERANCE:
-                nearest_point = Point(nearest_line_geometry.coords[-1])
-                # graph.add_edge(source_target_nodes_geom, nearest_point)
+            if near_first_node <= near_last_node:
+                nearest_point_case1 = (Point(nearest_line_geometry.coords[0]))
             else:
+                nearest_point_case1 = (Point(nearest_line_geometry.coords[-1]))
+            graph.add_edge(source_target_nodes_geom, nearest_point_case1)
+            if not (near_first_node <= END_NODE_TOLERANCE or near_last_node <= END_NODE_TOLERANCE):
                 join_line = LineString([source_target_nodes_geom, nearest_p])
                 splits_edges_coll = []
                 start_buf_ratio = 1 + 0.001 / join_line.length  # grow 1 mm at a time
@@ -106,10 +104,9 @@ def tie_outside_node(gpd_df_nodes, gpd_df_network):
                     break_count += 1
                     if break_count == 1000:
                         sys.exit('Did over 1000 loops.')
-                nearest_point = splits_edges_coll[0].coords[-1]  # Select last node in geom 0 of splits_edges_coll as
-                # graph.add_edge(source_target_nodes_geom, nearest_point_exact_case2)
-    return nearest_point
-
+                nearest_point_exact_case2 = splits_edges_coll[0].coords[-1]  # Select last node in geom 0 of splits_edges_coll as
+                graph.add_edge(source_target_nodes_geom, nearest_point_exact_case2)
+    return graph
 
 
 if __name__ == '__main__':
@@ -139,14 +136,15 @@ if __name__ == '__main__':
                 print(path_up_list)
                 path_up_list.clear()
     path_up_list = []
-    path_up_graph: nx.DiGraph = test_graph.subgraph(nx.ancestors(test_graph, test_node_list[index])).copy()
-    '''for location in path_up_graph:
-        if nx.generic.has_path(path_up_graph, location, test_node_list[index]):
-            for up_path in nx.all_simple_paths(path_up_graph, location, test_node_list[index]):
-                for path_coord in up_path:
+    path_up_graph = test_graph.subgraph(nx.ancestors(test_graph, test_node_list[index])).copy()
+    '''for coord in path_up_graph.nodes:
+        if path_up_graph.in_degree(coord) == 0 & nx.generic.has_path(path_up_graph, coord, test_node_list[index]):
+            for path in nx.all_simple_paths(path_up_graph, coord, test_node_list[index]):
+                for path_coord in path:
                     path_up_list.append(test_node_list.index(path_coord))
                     print(path_up_list)
                     path_up_list.clear()'''
     nx.draw(path_up_graph, node_size=5)
     plt.show()
+    print(path_up_list)
     test_graph.clear()
