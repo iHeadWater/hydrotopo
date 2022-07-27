@@ -137,13 +137,13 @@ if __name__ == '__main__':
                 path_up_list.clear()
     path_up_list = []
     path_up_graph = test_graph.subgraph(nx.ancestors(test_graph, test_node_list[index])).copy()
-    '''for coord in path_up_graph.nodes:
+    for coord in path_up_graph.nodes:
         if path_up_graph.in_degree(coord) == 0 & nx.generic.has_path(path_up_graph, coord, test_node_list[index]):
-            for path in nx.all_simple_paths(path_up_graph, coord, test_node_list[index]):
-                for path_coord in path:
+            for up_path in nx.all_simple_paths(path_up_graph, coord, test_node_list[index]):
+                for path_coord in up_path:
                     path_up_list.append(test_node_list.index(path_coord))
                     print(path_up_list)
-                    path_up_list.clear()'''
+                    path_up_list.clear()
     nx.draw(path_up_graph, node_size=5)
     plt.show()
     print(path_up_list)
