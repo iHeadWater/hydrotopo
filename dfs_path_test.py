@@ -69,10 +69,10 @@ def gen_stations_graph(nodes_file_str, network_file_str):
     for point in gpd_nodes_df.geometry:
         list_point_line_tuple.append((point.to_wkt(), geopandas_min_dist(point, gpd_network_df, 200).geometry.to_wkt()))
     graph_frame = gpd.GeoDataFrame(list_point_line_tuple, columns=['near_stations', 'nearest_line'])
-    grouped_graph_frame: GeoDataFrame = gpd.GeoDataFrame(graph_frame.groupby(['nearest_line']))
+    grouped_graph_frame = graph_frame.groupby('nearest_line', as_index=False)
     directed_graph = nx.DiGraph()
     for group in grouped_graph_frame:
-        nearest_line: LineString = group['nearest_line'][0]
+        nearest_line: LineString = loads(group[0])
         for i in range(0, len(group['near_stations'])):
             new_line_string = snap(nearest_line, group['near_stations'][i],
                                    group['near_stations'][i].distance(nearest_line) + 0.0001)  # 待修改
