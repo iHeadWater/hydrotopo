@@ -11,16 +11,13 @@ from shapely.ops import nearest_points, split
 from shapely.wkt import loads
 
 # 本文件测试数据可以在EPSG:7683和EPSG:4326下转换，单位全部为度，1°≈110km
-INPUT_NETWORK_FILE_SHP = os.path.relpath("test_data/near_changchun_cut.shp")  # network file, lines (no multiline objects)
+INPUT_NETWORK_FILE_SHP = os.path.relpath("test_data/near_changchun_cut.shp")
 INPUT_NODE_FILE_SHP = os.path.relpath("test_data/near_changchun_dots.shp")
 
 
 def geopandas_min_dist(point, gpd_dataframe, initial_buffer=0.005):
     """https://gis.stackexchange.com/questions/266730/filter-by-bounding-box-in-geopandas/266833
-    Use the .cx index to find geoms inside the bounding box.
-    Only use calculate the distance based on that.  Increase the bounding
-    box size is you don't have a geometry.
-    Return THE nearest geometry from a point"""
+    从限定范围内获取图元，本例中为河网线"""
     buffer_steps = 0.002
     # 给点或者其他geometry加buffer
     xmin, ymin, xmax, ymax = point.buffer(initial_buffer).bounds
@@ -39,14 +36,11 @@ def geopandas_min_dist(point, gpd_dataframe, initial_buffer=0.005):
 
 
 def get_extrapoled_line(p1, p2, extrapol_ratio):  # 按照比率生成p1和p2之间的延长线
-    """Creates a line extrapolated in p1->p2 direction，Input is shapely objects"""
     c = (p1.x + extrapol_ratio * (p2.x - p1.x), p1.y + extrapol_ratio * (p2.y - p1.y))
     return LineString([p1, c])
 
 
-def tie_outside_node(gpd_df_nodes, gpd_df_network):
-    """For each outside node, find the nearest line inside the buffer. The buffer
-    grows if no lines are found.  """
+def tie_outside_node(gpd_df_nodes, gpd_df_network):    #将外部站点绑定到河网线上
     source_point_line_dict = bd.bidict()    # 构建原点和投影点之间的映射关系
     nearest_point_line_dict = md.MultiDict()  # 构建投影点和线的映射关系
     for x in range(0, len(gpd_df_nodes)):
