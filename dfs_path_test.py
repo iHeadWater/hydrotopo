@@ -159,13 +159,13 @@ def build_graph(nodes_df: GeoDataFrame, edges_df: GeoDataFrame):
 
 
 def get_upstream_stations(gpd_nodes_df: GeoDataFrame, gpd_network_df: GeoDataFrame,
-                          station_index: int, cutoff: int = 2147483547):
+                          station_index: int, cutoff: int = 2147483647):
     stations_up_list = []
     stations_graph = build_graph(gpd_nodes_df, gpd_network_df)[0]
     source_target_dict = build_graph(gpd_nodes_df, gpd_network_df)[1]
     source_node_coord = (gpd_nodes_df.geometry[station_index].x, gpd_nodes_df.geometry[station_index].y)
     target_node_coord = source_target_dict.get(source_node_coord)
-    if (os.path.exists("upstream_graph_" + str(station_index) + "_cutoff_" + str(cutoff) + ".edgelist")):
+    if os.path.exists("upstream_graph_" + str(station_index) + "_cutoff_" + str(cutoff) + ".edgelist"):
         if (outdated is False) & (os.path.exists('up_down_paths.txt')):
             set_up_no_dup = set()
             with open("up_down_paths.txt", mode='r+') as fp:
@@ -190,8 +190,9 @@ def get_upstream_stations(gpd_nodes_df: GeoDataFrame, gpd_network_df: GeoDataFra
         source_node_coord = (gpd_nodes_df.geometry[station_index].x, gpd_nodes_df.geometry[station_index].y)
         target_node_coord = source_target_dict.get(source_node_coord)
         upstream_graph = stations_graph.subgraph(nx.ancestors(stations_graph, target_node_coord) | {target_node_coord}).copy()
-        nx.write_edgelist(upstream_graph,
-                          "upstream_graph_" + str(station_index) + "_cutoff_" + str(cutoff) + ".edgelist", delimiter='|')
+        if cutoff != 2147483647:
+            nx.write_edgelist(upstream_graph,
+                              "upstream_graph_" + str(station_index) + "_cutoff_" + str(cutoff) + ".edgelist", delimiter='|')
         set_up_no_dup = set()  # 给找到的路径去重
     for coord in upstream_graph.nodes:
         if upstream_graph.in_degree(coord) == 0 & nx.generic.has_path(upstream_graph, coord, target_node_coord):
