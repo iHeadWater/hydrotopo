@@ -16,6 +16,7 @@ from shapely.wkt import loads
 
 # 本文件线元测试数据来自https://www.hydrosheds.org/products/hydrorivers，坐标为EPSG:4326，单位全部为度，1°≈110km
 # 只接受LineString，不接受MultiLineString
+# 如果想要从头计算所有逻辑，需要将生成的txt和csv缓存文件全部删除
 
 INPUT_NETWORK_FILE_SHP = os.path.relpath("test_data/near_changchun_cut.shp")
 INPUT_NODE_FILE_SHP = os.path.relpath("test_data/near_changchun_dots.shp")
@@ -55,7 +56,6 @@ def tie_outside_node(gpd_df_nodes, gpd_df_network):  # 将外部站点投影到�
     source_point_line_dict = bd.bidict()  # 构建原点和投影点之间的映射关系
     nearest_point_line_dict = md.MultiDict()  # 构建投影点和线的映射关系
     for x in range(0, len(gpd_df_nodes)):
-        print("tying node: " + str(x))
         source_target_nodes_geom = gpd_df_nodes.geometry[x]
         nearest_line = geopandas_min_dist(gpd_df_nodes.geometry[x], gpd_df_network).geometry
         # 用以解决低质数据，下文while处若循环1000次后还连不上，就放弃
@@ -109,7 +109,7 @@ def tie_outside_node(gpd_df_nodes, gpd_df_network):  # 将外部站点投影到�
 
 
 def build_graph(nodes_df: GeoDataFrame, edges_df: GeoDataFrame):
-    if outdated is False | (outdated is True & os.path.exists('source_project_points.csv') & os.path.exists(
+    if (outdated is False) | (outdated is True & os.path.exists('source_project_points.csv') & os.path.exists(
             'nearest_line_project_points.csv')):
         if os.path.exists('network_graph.edgelist'):
             network_graph = nx.read_edgelist(
@@ -165,9 +165,8 @@ def get_upstream_stations(gpd_nodes_df: GeoDataFrame, gpd_network_df: GeoDataFra
     source_target_dict = build_graph(gpd_nodes_df, gpd_network_df)[1]
     source_node_coord = (gpd_nodes_df.geometry[station_index].x, gpd_nodes_df.geometry[station_index].y)
     target_node_coord = source_target_dict.get(source_node_coord)
-    if outdated is False | (outdated is True & os.path.exists("upstream_graph_" + str(station_index) +
-                                                              "_cutoff_" + str(cutoff) + ".edgelist")):
-        if os.path.exists('up_down_paths.txt'):
+    if (os.path.exists("upstream_graph_" + str(station_index) + "_cutoff_" + str(cutoff) + ".edgelist")):
+        if (outdated is False) & (os.path.exists('up_down_paths.txt')):
             set_up_no_dup = set()
             with open("up_down_paths.txt", mode='r+') as fp:
                 for line_str in fp.readlines():
@@ -182,6 +181,7 @@ def get_upstream_stations(gpd_nodes_df: GeoDataFrame, gpd_network_df: GeoDataFra
                                               delimiter='|', nodetype=lambda t: tuple([float(v) for v in str(t).strip("()").split(",")]),
                                               create_using=nx.DiGraph)
         else:
+            set_up_no_dup = set()
             upstream_graph = nx.read_edgelist("upstream_graph_" + str(station_index) + "_cutoff_" + str(cutoff) + ".edgelist",
                                               delimiter='|', nodetype=lambda t: tuple([float(v) for v in str(t).strip("()").split(",")]),
                                               create_using=nx.DiGraph)
@@ -192,7 +192,7 @@ def get_upstream_stations(gpd_nodes_df: GeoDataFrame, gpd_network_df: GeoDataFra
         upstream_graph = stations_graph.subgraph(nx.ancestors(stations_graph, target_node_coord) | {target_node_coord}).copy()
         nx.write_edgelist(upstream_graph,
                           "upstream_graph_" + str(station_index) + "_cutoff_" + str(cutoff) + ".edgelist", delimiter='|')
-    set_up_no_dup = set()  # 给找到的路径去重
+        set_up_no_dup = set()  # 给找到的路径去重
     for coord in upstream_graph.nodes:
         if upstream_graph.in_degree(coord) == 0 & nx.generic.has_path(upstream_graph, coord, target_node_coord):
             for up_path in nx.all_simple_paths(upstream_graph, coord, target_node_coord):
@@ -211,7 +211,7 @@ def get_upstream_stations(gpd_nodes_df: GeoDataFrame, gpd_network_df: GeoDataFra
 def get_downstream_stations(gpd_nodes_df: GeoDataFrame, gpd_network_df: GeoDataFrame,
                             station_index: int, cutoff: int = 2147483647):
     list_stations = []
-    if outdated is False | (outdated is True & os.path.exists('up_down_paths.txt')):
+    if (outdated is False) & os.path.exists('up_down_paths.txt'):
         with open('up_down_paths.txt', mode='r+') as fp:
             for line_str in fp.readlines():
                 line_str_head = line_str.split(':')[0]
@@ -239,7 +239,7 @@ def get_downstream_stations(gpd_nodes_df: GeoDataFrame, gpd_network_df: GeoDataF
 
 def get_upstream_stations_graph(gpd_nodes_df: GeoDataFrame, gpd_network_df: GeoDataFrame, number: int, cutoff: int = 2147483647):
     upstream_graph = get_upstream_stations(gpd_nodes_df, gpd_network_df, number, cutoff)[0]
-    if outdated is False | (outdated is True & os.path.exists('origin_graph.edgelist')):
+    if (outdated is False) & os.path.exists('origin_graph.edgelist'):
         origin_graph = nx.read_edgelist('origin_graph.edgelist', delimiter='|',
                                         nodetype=lambda t: tuple([float(v) for v in str(t).strip("()").split(",")]),
                                         create_using=nx.DiGraph, data=(("weight", float),))
@@ -327,14 +327,14 @@ def upstream_node_on_mainstream(gpd_nodes_df, gpd_network_df, number_src, number
 
 
 if __name__ == '__main__':
-    index = 0
+    index = 4
     START_TIME = time.time()
     show_upstream_stations_graph(gpd_nodes_dataframe, gpd_network_dataframe, index, 5)
     print('____________________________________________________________________________')
     print(upstream_node_on_mainstream(gpd_nodes_dataframe, gpd_network_dataframe, index, 28))
     print('____________________________________________________________________________')
     show_downstream_stations(gpd_nodes_dataframe, gpd_network_dataframe, index)
-    if (outdated is True) & (not os.path.exists('up_down_paths.txt')):
+    if outdated is True:
         write_path_file(gpd_nodes_dataframe, gpd_network_dataframe)
     STOP_TIME = time.time()
     TOTAL_TIME = STOP_TIME - START_TIME
