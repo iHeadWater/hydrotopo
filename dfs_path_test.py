@@ -1,19 +1,27 @@
 import os
 import sys
+import time
 
 import bidict as bd
+import pandas as pd
 import geopandas as gpd
 import matplotlib.pyplot as plt
 import multidict as md
 import networkx as nx
+from geopandas import GeoDataFrame
 from networkx import DiGraph
 from shapely.geometry import Point, LineString
 from shapely.ops import nearest_points, split
 from shapely.wkt import loads
 
-# 本文件测试数据来自https://www.hydrosheds.org/products/hydrorivers，坐标为EPSG:4326，单位全部为度，1°≈110km
+# 本文件线元测试数据来自https://www.hydrosheds.org/products/hydrorivers，坐标为EPSG:4326，单位全部为度，1°≈110km
+# 只接受LineString，不接受MultiLineString
+
 INPUT_NETWORK_FILE_SHP = os.path.relpath("test_data/near_changchun_cut.shp")
 INPUT_NODE_FILE_SHP = os.path.relpath("test_data/near_changchun_dots.shp")
+gpd_nodes_dataframe = gpd.read_file(INPUT_NODE_FILE_SHP)
+gpd_network_dataframe = gpd.read_file(INPUT_NETWORK_FILE_SHP)
+outdated = False
 
 
 def geopandas_min_dist(point, gpd_dataframe, initial_buffer=0.005):
@@ -36,45 +44,99 @@ def geopandas_min_dist(point, gpd_dataframe, initial_buffer=0.005):
     return geoseries
 
 
-def get_extrapolated_line(p1, p2, extrapolate_ratio):  # 按照比率生成p1和p2之间的延长线
-    c = (p1.x + extrapolate_ratio * (p2.x - p1.x), p1.y + extrapolate_ratio * (p2.y - p1.y))
-    return LineString([p1, c])
+def get_extrapolated_line(source_coord, coord, extrapolate_ratio):  # 按照比率生成p1和p2之间的延长线
+    source = Point(source_coord)
+    p2 = Point(coord)
+    c = (source.x + extrapolate_ratio * (p2.x - source.x), source.y + extrapolate_ratio * (p2.y - source.y))
+    return LineString([source, c])
 
 
-def tie_outside_node(gpd_df_nodes, gpd_df_network):  # 将外部站点绑定到河网线上
+def tie_outside_node(gpd_df_nodes, gpd_df_network):  # 将外部站点投影到河网线上
     source_point_line_dict = bd.bidict()  # 构建原点和投影点之间的映射关系
     nearest_point_line_dict = md.MultiDict()  # 构建投影点和线的映射关系
     for x in range(0, len(gpd_df_nodes)):
+        print("tying node: " + str(x))
         source_target_nodes_geom = gpd_df_nodes.geometry[x]
         nearest_line = geopandas_min_dist(gpd_df_nodes.geometry[x], gpd_df_network).geometry
         # 用以解决低质数据，下文while处若循环1000次后还连不上，就放弃
         outside_node_grid_geom_to_nearest_p \
             = [q.wkt for q in nearest_points(source_target_nodes_geom, nearest_line)]
         # 从两个最近点中取一个
-        nearest_p = loads(outside_node_grid_geom_to_nearest_p[1])
-        join_line = LineString([source_target_nodes_geom, nearest_p])
-        splits_edges_coll = []
-        start_buf_ratio = 1 + 0.00001 / join_line.length
-        break_count = 0
-        while (len(splits_edges_coll)) != 2:
-            join_line_interpolation = get_extrapolated_line(source_target_nodes_geom, nearest_p, start_buf_ratio)
-            splits_edges_coll = split(nearest_line, join_line_interpolation)
-            start_buf_ratio += 1 / join_line.length
-            break_count += 1
-            if break_count == 1000:
-                sys.exit('Did over 1000 loops.')
-        nearest_point_exact = splits_edges_coll[0].coords[-1]
-        source_point_line_dict.put((source_target_nodes_geom.x, source_target_nodes_geom.y), nearest_point_exact)
-        nearest_point_line_dict.add(nearest_line.to_wkt(), nearest_point_exact)
+        nearest_p = (loads(outside_node_grid_geom_to_nearest_p[1]).x, loads(outside_node_grid_geom_to_nearest_p[1]).y)
+        source_coord = (source_target_nodes_geom.x, source_target_nodes_geom.y)
+        point_src = nearest_line.coords[0]
+        point_dst = nearest_line.coords[-1]
+        if (nearest_p[0] == point_src[0]) & (nearest_p[1] == point_src[1]):
+            point_src_rand = (point_src[0], point_src[1])
+            source_point_line_dict.put(source_coord, point_src_rand)
+            nearest_point_line_dict.add(nearest_line.to_wkt(), point_src_rand)
+        elif (nearest_p[0] == point_dst[0]) & (nearest_p[1] == point_dst[1]):
+            point_dst_rand = (point_dst[0], point_dst[1])
+            source_point_line_dict.put(source_coord, point_dst_rand)
+            nearest_point_line_dict.add(nearest_line.to_wkt(), point_dst_rand)
+        else:
+            join_line = LineString([source_coord, nearest_p])
+            splits_edges_coll = []
+            join_line_length = join_line.length
+            if join_line_length == 0:
+                join_line_length = 1e-7
+            start_buf_ratio = 1 + (0.001 / join_line_length)
+            break_count = 0
+            while (len(splits_edges_coll)) != 2:
+                if join_line.length != 0:
+                    join_line_interpolation = get_extrapolated_line(source_coord, nearest_p, start_buf_ratio)
+                    splits_edges_coll = split(nearest_line, join_line_interpolation)
+                else:
+                    break
+                start_buf_ratio += 0.01 / join_line_length
+                break_count += 1
+                if break_count == 1000:
+                    sys.exit('Did over 1000 loops.')
+            if join_line.length > 0:
+                nearest_point_exact = splits_edges_coll[0].coords[-1]
+                nearest_point_exact_rand = (nearest_point_exact[0], nearest_point_exact[1])
+            else:
+                nearest_point_exact = nearest_p
+                nearest_point_exact_rand = (nearest_point_exact[0], nearest_point_exact[1])
+            source_point_line_dict.put(source_coord, nearest_point_exact_rand)
+            nearest_point_line_dict.add(nearest_line.to_wkt(), nearest_point_exact_rand)
+    source_point_line_frame = pd.DataFrame({'source': source_point_line_dict.keys(), 'point': source_point_line_dict.values()})
+    nearest_point_line_frame = pd.DataFrame({'nearest_line_wkt': nearest_point_line_dict.keys(),
+                                             'nearest_point': nearest_point_line_dict.values()})
+    source_point_line_frame.to_csv('source_project_points.csv', index=False)
+    nearest_point_line_frame.to_csv('nearest_line_project_points.csv', index=False)
     return nearest_point_line_dict, source_point_line_dict
 
 
-def build_graph(file_str_network, file_str_node):
-    nodes_df = gpd.read_file(file_str_node)
-    edges_df = gpd.read_file(file_str_network)
-    network_graph: DiGraph = nx.DiGraph()
-    nearest_point_line_dict = tie_outside_node(nodes_df, edges_df)[0]
-    source_point_line_dict = tie_outside_node(nodes_df, edges_df)[1]
+def build_graph(nodes_df: GeoDataFrame, edges_df: GeoDataFrame):
+    if outdated is False | (outdated is True & os.path.exists('source_project_points.csv') & os.path.exists(
+            'nearest_line_project_points.csv')):
+        if os.path.exists('network_graph.edgelist'):
+            network_graph = nx.read_edgelist(
+                'network_graph.edgelist', delimiter='|',
+                nodetype=lambda node: tuple([float(v) for v in str(node).strip("()").split(",")]),
+                create_using=nx.DiGraph)
+        else:
+            network_graph: DiGraph = nx.DiGraph()
+        source_point_frame = pd.read_csv('source_project_points.csv')
+        line_point_frame = pd.read_csv('nearest_line_project_points.csv')
+        source_point_line_dict = bd.bidict()
+        for i in range(0, len(source_point_frame)):
+            str_source: str = source_point_frame['source'][i].lstrip('(').rstrip(')')
+            str_point: str = source_point_frame['point'][i].lstrip('(').rstrip(')')
+            source_coord = (float(str_source.split(',')[0]), float(str_source.split(',')[1]))
+            point_coord = (float(str_point.split(',')[0]), float(str_point.split(',')[1]))
+            source_point_line_dict.put(source_coord, point_coord)
+        nearest_point_line_dict = md.MultiDict()
+        for i in range(0, len(line_point_frame)):
+            line_string_wkt = line_point_frame['nearest_line_wkt'][i]
+            str_point: str = line_point_frame['nearest_point'][i].lstrip('(').rstrip(')')
+            point_coord = (float(str_point.split(',')[0]), float(str_point.split(',')[1]))
+            nearest_point_line_dict.add(line_string_wkt, point_coord)
+    else:
+        network_graph: DiGraph = nx.DiGraph()
+        nearest_point_line_dict = tie_outside_node(nodes_df, edges_df)[0]
+        source_point_line_dict = tie_outside_node(nodes_df, edges_df)[1]
     for line in edges_df.geometry:
         line_wkt = line.to_wkt()
         list_point_and_dis = []
@@ -92,17 +154,44 @@ def build_graph(file_str_network, file_str_node):
             src = line.coords[0]
             dest = line.coords[-1]
             network_graph.add_edge(src, dest)
-    return network_graph, source_point_line_dict
+    nx.write_edgelist(network_graph, 'network_graph.edgelist', delimiter='|')
+    return network_graph, source_point_line_dict, nearest_point_line_dict
 
 
-def get_upstream_stations(nodes_file_path, network_file_path, station_index: int, cutoff: int = 2147483547):
+def get_upstream_stations(gpd_nodes_df: GeoDataFrame, gpd_network_df: GeoDataFrame,
+                          station_index: int, cutoff: int = 2147483547):
     stations_up_list = []
-    stations_graph = build_graph(network_file_path, nodes_file_path)[0]
-    gpd_nodes_df = gpd.read_file(nodes_file_path)
-    source_target_dict = build_graph(network_file_path, nodes_file_path)[1]
+    stations_graph = build_graph(gpd_nodes_df, gpd_network_df)[0]
+    source_target_dict = build_graph(gpd_nodes_df, gpd_network_df)[1]
     source_node_coord = (gpd_nodes_df.geometry[station_index].x, gpd_nodes_df.geometry[station_index].y)
     target_node_coord = source_target_dict.get(source_node_coord)
-    upstream_graph = stations_graph.subgraph(nx.ancestors(stations_graph, target_node_coord) | {target_node_coord}).copy()
+    if outdated is False | (outdated is True & os.path.exists("upstream_graph_" + str(station_index) +
+                                                              "_cutoff_" + str(cutoff) + ".edgelist")):
+        if os.path.exists('up_down_paths.txt'):
+            set_up_no_dup = set()
+            with open("up_down_paths.txt", mode='r+') as fp:
+                for line_str in fp.readlines():
+                    line_str_head = line_str.split(':')[0]
+                    line_str_body = line_str.split(':')[1]
+                    line_str_stations = line_str_body.split(',')
+                    for i in range(0, len(line_str_stations)):
+                        line_str_stations[i] = line_str_stations[i].strip('\n').strip(' ').strip("'").strip('"')
+                    if (line_str_head == 'upstream') & ('station' + str(station_index) == line_str_stations[-1]):
+                        set_up_no_dup.add(str(line_str_stations[-cutoff:]))
+            upstream_graph = nx.read_edgelist("upstream_graph_" + str(station_index) + "_cutoff_" + str(cutoff) + ".edgelist",
+                                              delimiter='|', nodetype=lambda t: tuple([float(v) for v in str(t).strip("()").split(",")]),
+                                              create_using=nx.DiGraph)
+        else:
+            upstream_graph = nx.read_edgelist("upstream_graph_" + str(station_index) + "_cutoff_" + str(cutoff) + ".edgelist",
+                                              delimiter='|', nodetype=lambda t: tuple([float(v) for v in str(t).strip("()").split(",")]),
+                                              create_using=nx.DiGraph)
+    else:
+        source_target_dict = build_graph(gpd_nodes_df, gpd_network_df)[1]
+        source_node_coord = (gpd_nodes_df.geometry[station_index].x, gpd_nodes_df.geometry[station_index].y)
+        target_node_coord = source_target_dict.get(source_node_coord)
+        upstream_graph = stations_graph.subgraph(nx.ancestors(stations_graph, target_node_coord) | {target_node_coord}).copy()
+        nx.write_edgelist(upstream_graph,
+                          "upstream_graph_" + str(station_index) + "_cutoff_" + str(cutoff) + ".edgelist", delimiter='|')
     set_up_no_dup = set()  # 给找到的路径去重
     for coord in upstream_graph.nodes:
         if upstream_graph.in_degree(coord) == 0 & nx.generic.has_path(upstream_graph, coord, target_node_coord):
@@ -112,44 +201,56 @@ def get_upstream_stations(nodes_file_path, network_file_path, station_index: int
                         point = Point(source_target_dict.inv[path_coord])
                         for x in range(0, len(gpd_nodes_df)):
                             if gpd_nodes_df.geometry[x] == point:
-                                stations_up_list.append('station' + str(x + 1))
+                                stations_up_list.append('station' + str(x))
                 if len(stations_up_list) > 1:
                     set_up_no_dup.add(str(stations_up_list[-cutoff:]))
                 stations_up_list.clear()
     return upstream_graph, set_up_no_dup
 
 
-def show_downstream_stations(nodes_file_path, network_file_path, station_index: int, cutoff: int = 2147483647):
-    stations_graph = build_graph(network_file_path, nodes_file_path)[0]
-    source_target_dict = build_graph(network_file_path, nodes_file_path)[1]
-    gpd_nodes_df = gpd.read_file(nodes_file_path)
-    source_node_coord = (gpd_nodes_df.geometry[station_index].x, gpd_nodes_df.geometry[station_index].y)
-    target_node_coord = source_target_dict.get(source_node_coord)
-    dfs_tree_path = nx.dfs_tree(stations_graph, target_node_coord)
+def get_downstream_stations(gpd_nodes_df: GeoDataFrame, gpd_network_df: GeoDataFrame,
+                            station_index: int, cutoff: int = 2147483647):
     list_stations = []
-    for coord in dfs_tree_path:
-        if coord in source_target_dict.values():
-            source_coord = source_target_dict.inv[coord]
-            point = Point(source_coord)
-            for x in range(0, len(gpd_nodes_df)):
-                if gpd_nodes_df.geometry[x] == point:
-                    list_stations.append('station' + str(x + 1))
-                    break
-    print(list_stations[:cutoff])
+    if outdated is False | (outdated is True & os.path.exists('up_down_paths.txt')):
+        with open('up_down_paths.txt', mode='r+') as fp:
+            for line_str in fp.readlines():
+                line_str_head = line_str.split(':')[0]
+                line_str_body = line_str.split(':')[1]
+                line_str_station = line_str_body.split(',')
+                for i in range(0, len(line_str_station)):
+                    line_str_station[i] = line_str_station[i].strip('\n').strip(' ').strip("'").strip('"')
+                if (line_str_head == 'downstream') & (('station' + str(station_index)) == line_str_station[0]):
+                    list_stations = line_str_station
+    else:
+        stations_graph = build_graph(gpd_nodes_df, gpd_network_df)[0]
+        source_target_dict = build_graph(gpd_nodes_df, gpd_network_df)[1]
+        source_node_coord = (gpd_nodes_df.geometry[station_index].x, gpd_nodes_df.geometry[station_index].y)
+        target_node_coord = source_target_dict.get(source_node_coord)
+        dfs_tree_path = nx.dfs_tree(stations_graph, target_node_coord)
+        for coord in dfs_tree_path:
+            if coord in source_target_dict.values():
+                source_coord = source_target_dict.inv[coord]
+                point = Point(source_coord)
+                for x in range(0, len(gpd_nodes_df)):
+                    if gpd_nodes_df.geometry[x] == point:
+                        list_stations.append('station' + str(x))
+    return list_stations[:cutoff]
 
 
-def show_upstream_stations_graph(nodes_file_path, network_file_path, number: int, cutoff: int):
-    upstream_graph = get_upstream_stations(nodes_file_path, network_file_path, number, cutoff)[0]
-    set_up_no_dup = get_upstream_stations(nodes_file_path, network_file_path, number, cutoff)[1]
-    origin_graph = nx.DiGraph()
+def get_upstream_stations_graph(gpd_nodes_df: GeoDataFrame, gpd_network_df: GeoDataFrame, number: int, cutoff: int = 2147483647):
+    upstream_graph = get_upstream_stations(gpd_nodes_df, gpd_network_df, number, cutoff)[0]
+    if outdated is False | (outdated is True & os.path.exists('origin_graph.edgelist')):
+        origin_graph = nx.read_edgelist('origin_graph.edgelist', delimiter='|',
+                                        nodetype=lambda t: tuple([float(v) for v in str(t).strip("()").split(",")]),
+                                        create_using=nx.DiGraph, data=(("weight", float),))
+    else:
+        origin_graph = nx.DiGraph()
+        for line in gpd_network_df.geometry:
+            src = line.coords[0]
+            dest = line.coords[-1]
+            origin_graph.add_edge(src, dest, weight=line.length)
     new_graph = nx.DiGraph()
-    gpd_df_lines = gpd.read_file(network_file_path)
-    gpd_nodes_df = gpd.read_file(nodes_file_path)
-    for line in gpd_df_lines.geometry:
-        src = line.coords[0]
-        dest = line.coords[-1]
-        origin_graph.add_edge(src, dest)
-    source_target_dict = build_graph(network_file_path, nodes_file_path)[1]
+    source_target_dict = build_graph(gpd_nodes_df, gpd_network_df)[1]
     source_node_coord = (gpd_nodes_df.geometry[number].x, gpd_nodes_df.geometry[number].y)
     target_node_coord = source_target_dict.get(source_node_coord)
     for coord in upstream_graph.nodes:
@@ -160,14 +261,82 @@ def show_upstream_stations_graph(nodes_file_path, network_file_path, number: int
                     if path_coord in origin_graph.nodes:
                         list_up_path.remove(path_coord)
                 nx.add_path(new_graph, list_up_path[-cutoff:])
+    nx.write_edgelist(origin_graph, 'origin_graph.edgelist', delimiter='|', data=["weight"])
+    return upstream_graph, new_graph, origin_graph
+
+
+def write_path_file(gpd_nodes_df: GeoDataFrame, gpd_network_df: GeoDataFrame):
+    with open("up_down_paths.txt", mode='w+') as fp:
+        for i in range(0, len(gpd_nodes_df)):
+            print('Writing stream: ' + str(i))
+            set_up_no_dup = get_upstream_stations(gpd_nodes_df, gpd_network_df, i)[1]
+            list_up_no_dup = list(set_up_no_dup)
+            for str_path in list_up_no_dup:
+                fp.writelines("upstream: " + str_path.lstrip('[').rstrip(']') + "\n")
+            list_down = get_downstream_stations(gpd_nodes_df, gpd_network_df, i)
+            fp.writelines("downstream: " + str(list_down).lstrip('[').rstrip(']') + "\n")
+
+
+def show_upstream_stations_graph(gpd_nodes_df: GeoDataFrame, gpd_network_df: GeoDataFrame, number: int, cutoff: int = 2147483647):
+    upstream_graph = get_upstream_stations_graph(gpd_nodes_df, gpd_network_df, number, cutoff)[1]
+    set_up_no_dup = get_upstream_stations(gpd_nodes_df, gpd_network_df, number, cutoff)[1]
     for list_str in set_up_no_dup:
-        print(list_str.lstrip('[').rstrip(']'))   # 输出的都是字串
-    nx.draw(new_graph, node_size=10)
+        print(list_str.lstrip('[').rstrip(']'))  # 输出的都是字串
+    nx.draw(upstream_graph, node_size=10)
     plt.show()
+
+
+def show_downstream_stations(gpd_nodes_df: GeoDataFrame, gpd_network_df: GeoDataFrame, number: int, cutoff: int = 2147483647):
+    list_stations = get_downstream_stations(gpd_nodes_df, gpd_network_df, number, cutoff)
+    print(list_stations)
+
+
+def upstream_node_on_mainstream(gpd_nodes_df, gpd_network_df, number_src, number_target):
+    # number_src是要生成子图的原点号，number_target是要判断干支流的点号
+    source_point = (gpd_nodes_df.geometry[number_src].x, gpd_nodes_df.geometry[number_src].y)
+    target_point = (gpd_nodes_df.geometry[number_target].x, gpd_nodes_df.geometry[number_target].y)
+    nearest_target_line: LineString = geopandas_min_dist(Point(target_point), gpd_network_df).geometry
+    nearest_source_line: LineString = geopandas_min_dist(Point(source_point), gpd_network_df).geometry
+    origin_graph = get_upstream_stations_graph(gpd_nodes_df, gpd_network_df, number_src)[2]
+    origin_target_point = nearest_target_line.coords[0]
+    origin_source_point = nearest_source_line.coords[-1]
+    origin_graph_src_sub: DiGraph = nx.subgraph(origin_graph, nx.ancestors(origin_graph, origin_source_point) | {
+        origin_source_point}).copy()
+    set_up_no_dup = get_upstream_stations(gpd_nodes_df, gpd_network_df, number_src, cutoff=2147483647)[1]
+    in_basin = False
+    for upstream_str in set_up_no_dup:
+        in_basin = in_basin | ('station' + str(number_target) in upstream_str)
+        if in_basin is False:
+            continue
+        else:
+            # 寻找所有到nearest_line.coords[-1]的边，然后判断其是否小于DAG最长长度
+            line_stations = upstream_str.strip('[]').replace("'", "").replace(' ', '').split(',')
+            for i in range(0, len(line_stations)):
+                line_stations[i] = line_stations[i].replace('"', '')
+            if (nx.shortest_path_length(origin_graph_src_sub, origin_target_point, origin_source_point, weight='weight') <
+                nx.dag_longest_path_length(origin_graph_src_sub, weight='weight')) & (origin_target_point not in nx.dag_longest_path(
+                origin_graph_src_sub, weight='weight')):
+                print('In tributary: ' + str(line_stations))
+                break
+            else:
+                cutoff = line_stations.index('station' + str(number_target))
+                print('In Mainstream: ' + str(line_stations[cutoff:]))
+                break
+    if in_basin is False:
+        print(str(number_target) + ' is not in upstream basin of ' + str(number_src))
 
 
 if __name__ == '__main__':
     index = 0
-    show_upstream_stations_graph(INPUT_NODE_FILE_SHP, INPUT_NETWORK_FILE_SHP, index, 3)
-    show_downstream_stations(INPUT_NODE_FILE_SHP, INPUT_NETWORK_FILE_SHP, index, 4)
-
+    START_TIME = time.time()
+    show_upstream_stations_graph(gpd_nodes_dataframe, gpd_network_dataframe, index, 5)
+    print('____________________________________________________________________________')
+    print(upstream_node_on_mainstream(gpd_nodes_dataframe, gpd_network_dataframe, index, 28))
+    print('____________________________________________________________________________')
+    show_downstream_stations(gpd_nodes_dataframe, gpd_network_dataframe, index)
+    if (outdated is True) & (not os.path.exists('up_down_paths.txt')):
+        write_path_file(gpd_nodes_dataframe, gpd_network_dataframe)
+    STOP_TIME = time.time()
+    TOTAL_TIME = STOP_TIME - START_TIME
+    print('done:', TOTAL_TIME, 'seconds')
+    print("Finished")
