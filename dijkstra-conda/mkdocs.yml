@@ -1,0 +1,22 @@
+site_name: Hydro Models Docs
+theme:
+    readthedocs
+extra_css:
+    - css/mkdocstrings.css
+plugins:
+  - search
+  - mkdocstrings:
+       handlers:
+          python:
+             paths: [dijkstra-conda]
+  - section-index
+  - gen-files:
+      scripts:
+      - docs/gen_ref_pages.py
+  - literate-nav:
+      nav_file: SUMMARY.md
+watch:
+    - dijkstra-conda
+use_directory_urls: false
+nav:
+- Code Reference: reference/
