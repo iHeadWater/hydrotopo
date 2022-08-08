@@ -10,7 +10,8 @@ import multidict as md
 import networkx as nx
 from geopandas import GeoDataFrame
 from networkx import DiGraph
-from shapely.geometry import Point, LineString
+from shapely import geometry
+from shapely.geometry import Point, LineString, GeometryCollection
 from shapely.ops import nearest_points, split
 from shapely.wkt import loads
 
@@ -23,7 +24,7 @@ INPUT_NETWORK_FILE_SHP = os.path.relpath("test_data/near_changchun_cut.shp")
 INPUT_NODE_FILE_SHP = os.path.relpath("test_data/near_changchun_dots.shp")
 gpd_nodes_dataframe = gpd.read_file(INPUT_NODE_FILE_SHP)
 gpd_network_dataframe = gpd.read_file(INPUT_NETWORK_FILE_SHP)
-'''用以标记数据是否过期，默认为False，改为True并删除所有.csv文件后，将从头生成所有数据'''
+'''用以标记数据是否过期，默认为False，改为True并删除所有缓存文件后，将从头生成所有数据'''
 outdated = False
 
 
@@ -84,7 +85,7 @@ def get_extrapolated_line(source_coord, coord, extrapolate_ratio):
 def tie_outside_node(gpd_df_nodes, gpd_df_network):
     """
     值得注意，由于tie_outside_node操作很费时，故工程中如有source_project_points.csv文件和nearest_line_project_points.csv文件，
-    程序会优先从这两个文件中读取数据，所以如要从头生成，请删除这两个文件
+    程序会优先从这两个文件中读取数据，所以如要从头生成，必须删除这两个文件
     参数
     ----------
     gpd_df_nodes: 存储站点数据的GeoDataFrame，参考本文件开头gpd_nodes_dataframe
@@ -129,20 +130,20 @@ def tie_outside_node(gpd_df_nodes, gpd_df_network):
             if (nearest_p[0] == point_src[0]) & (nearest_p[1] == point_src[1]):
                 point_src_rand = (point_src[0], point_src[1])
                 source_point_line_dict.put(source_coord, point_src_rand)
-                nearest_point_line_dict.add(nearest_line.to_wkt(), point_src_rand)
+                nearest_point_line_dict.add(nearest_line.wkt, point_src_rand)
             elif (nearest_p[0] == point_dst[0]) & (nearest_p[1] == point_dst[1]):
                 point_dst_rand = (point_dst[0], point_dst[1])
                 source_point_line_dict.put(source_coord, point_dst_rand)
-                nearest_point_line_dict.add(nearest_line.to_wkt(), point_dst_rand)
+                nearest_point_line_dict.add(nearest_line.wkt, point_dst_rand)
             else:
                 join_line = LineString([source_coord, nearest_p])
-                splits_edges_coll = []
+                splits_edges_coll: GeometryCollection = geometry.GeometryCollection()
                 join_line_length = join_line.length
                 if join_line_length == 0:
                     join_line_length = 1e-7
                 start_buf_ratio = 1 + (0.001 / join_line_length)
                 break_count = 0
-                while (len(splits_edges_coll)) != 2:
+                while (len(splits_edges_coll.geoms)) != 2:
                     if join_line.length != 0:
                         join_line_interpolation = get_extrapolated_line(source_coord, nearest_p, start_buf_ratio)
                         splits_edges_coll = split(nearest_line, join_line_interpolation)
@@ -153,13 +154,13 @@ def tie_outside_node(gpd_df_nodes, gpd_df_network):
                     if break_count == 1000:
                         sys.exit('Did over 1000 loops.')
                 if join_line.length > 0:
-                    nearest_point_exact = splits_edges_coll[0].coords[-1]
+                    nearest_point_exact = splits_edges_coll.geoms[0].coords[-1]
                     nearest_point_exact_rand = (nearest_point_exact[0], nearest_point_exact[1])
                 else:
                     nearest_point_exact = nearest_p
                     nearest_point_exact_rand = (nearest_point_exact[0], nearest_point_exact[1])
                 source_point_line_dict.put(source_coord, nearest_point_exact_rand)
-                nearest_point_line_dict.add(nearest_line.to_wkt(), nearest_point_exact_rand)
+                nearest_point_line_dict.add(nearest_line.wkt, nearest_point_exact_rand)
         source_point_line_frame = pd.DataFrame({'source': source_point_line_dict.keys(), 'point': source_point_line_dict.values()})
         nearest_point_line_frame = pd.DataFrame({'nearest_line_wkt': nearest_point_line_dict.keys(),
                                                  'nearest_point': nearest_point_line_dict.values()})
@@ -188,7 +189,7 @@ def build_graph(nodes_df: GeoDataFrame, edges_df: GeoDataFrame):
         network_graph: DiGraph = nx.DiGraph()
         nearest_point_line_dict = tie_outside_node(nodes_df, edges_df)[1]
         for line in edges_df.geometry:
-            line_wkt = line.to_wkt()
+            line_wkt = line.wkt
             list_point_and_dis = []
             list_coords = []
             if line_wkt in nearest_point_line_dict.keys():
