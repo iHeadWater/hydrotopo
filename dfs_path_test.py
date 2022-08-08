@@ -14,26 +14,39 @@ from shapely.geometry import Point, LineString
 from shapely.ops import nearest_points, split
 from shapely.wkt import loads
 
-# 本文件线元测试数据来自https://www.hydrosheds.org/products/hydrorivers，坐标为EPSG:4326，单位全部为度，1°≈110km
-# 只接受LineString，不接受MultiLineString
-# 如果想要从头计算所有逻辑，需要将生成的txt和csv缓存文件全部删除
+"""
+本文件线元测试数据来自https://www.hydrosheds.org/products/hydrorivers，坐标为EPSG:4326，单位全部为度，1°≈110km
+河网图层只接受LineString，不接受MultiLineString，输入前请将其转化为单部件
+如果想要从头计算所有逻辑，建议将以前生成的txt和csv缓存文件全部删除
+"""
 
 INPUT_NETWORK_FILE_SHP = os.path.relpath("test_data/near_changchun_cut.shp")
 INPUT_NODE_FILE_SHP = os.path.relpath("test_data/near_changchun_dots.shp")
 gpd_nodes_dataframe = gpd.read_file(INPUT_NODE_FILE_SHP)
 gpd_network_dataframe = gpd.read_file(INPUT_NETWORK_FILE_SHP)
+'''用以标记数据是否过期，如果为True，将重新生成上下游数据'''
 outdated = False
 
 
 def geopandas_min_dist(point, gpd_dataframe, initial_buffer=0.005):
-    """https://gis.stackexchange.com/questions/266730/filter-by-bounding-box-in-geopandas/266833
-    从限定范围内获取图元，本例中为河网线"""
+    """
+    https://gis.stackexchange.com/questions/266730/filter-by-bounding-box-in-geopandas/266833
+    从限定范围内获取图元，本例中为河网线
+
+    参数
+    ----------
+    point : shapely.POINT
+        待寻找最近线段的点
+    gpd_dataframe : geopandas.GeoDataFrame
+        存储河网线段的GeoDataFrame数据结构
+    initial_buffer : float
+        给点加的buffer（搜寻半径）大小，初始为0.005度，约为550米
+    """
     buffer_steps = 0.002
     # 给点或者其他geometry加buffer
     xmin, ymin, xmax, ymax = point.buffer(initial_buffer).bounds
     # 使用gpd_dataframe.cx获得特定buffer中的所有geometry
     gpd_df = gpd_dataframe.cx[xmin:xmax, ymin:ymax]
-    # if empty, go into loop
     while gpd_df.empty:
         initial_buffer = initial_buffer + buffer_steps
         xmin, ymin, xmax, ymax = (point.buffer(initial_buffer)).bounds
@@ -296,14 +309,26 @@ def upstream_node_on_mainstream(gpd_nodes_df, gpd_network_df, number_src, number
     # number_src是要生成子图的原点号，number_target是要判断干支流的点号
     source_point = (gpd_nodes_df.geometry[number_src].x, gpd_nodes_df.geometry[number_src].y)
     target_point = (gpd_nodes_df.geometry[number_target].x, gpd_nodes_df.geometry[number_target].y)
-    nearest_target_line: LineString = geopandas_min_dist(Point(target_point), gpd_network_df).geometry
-    nearest_source_line: LineString = geopandas_min_dist(Point(source_point), gpd_network_df).geometry
+    if (outdated is False) & (os.path.exists('nearest_line_project_points.csv') & os.path.exists('source_project_points.csv')):
+        nearest_line_project_df = pd.read_csv('nearest_line_project_points.csv')
+        source_project_point_dict = build_graph(gpd_nodes_df, gpd_network_df)[1]
+        source_nearest_point = source_project_point_dict.get(source_point)
+        target_nearest_point = source_project_point_dict.get(target_point)
+        nearest_source_line_wkt = nearest_line_project_df['nearest_line_wkt'][nearest_line_project_df['nearest_point'] ==
+                                                                              str(source_nearest_point)].values[0]
+        nearest_target_line_wkt = nearest_line_project_df['nearest_line_wkt'][nearest_line_project_df['nearest_point'] ==
+                                                                              str(target_nearest_point)].values[0]
+        nearest_source_line: LineString = loads(nearest_source_line_wkt)
+        nearest_target_line: LineString = loads(nearest_target_line_wkt)
+    else:
+        nearest_target_line: LineString = geopandas_min_dist(Point(target_point), gpd_network_df).geometry
+        nearest_source_line: LineString = geopandas_min_dist(Point(source_point), gpd_network_df).geometry
     origin_graph = get_upstream_stations_graph(gpd_nodes_df, gpd_network_df, number_src)[2]
     origin_target_point = nearest_target_line.coords[0]
     origin_source_point = nearest_source_line.coords[-1]
     origin_graph_src_sub: DiGraph = nx.subgraph(origin_graph, nx.ancestors(origin_graph, origin_source_point) | {
         origin_source_point}).copy()
-    set_up_no_dup = get_upstream_stations(gpd_nodes_df, gpd_network_df, number_src, cutoff=2147483647)[1]
+    set_up_no_dup = get_upstream_stations(gpd_nodes_df, gpd_network_df, number_src, cutoff=10000)[1]
     in_basin = False
     for upstream_str in set_up_no_dup:
         in_basin = in_basin | ('station' + str(number_target) in upstream_str)
