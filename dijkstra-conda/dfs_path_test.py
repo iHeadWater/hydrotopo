@@ -24,6 +24,7 @@ INPUT_NETWORK_FILE_SHP = os.path.relpath("test_data/near_changchun_cut.shp")
 INPUT_NODE_FILE_SHP = os.path.relpath("test_data/near_changchun_dots.shp")
 gpd_nodes_dataframe = gpd.read_file(INPUT_NODE_FILE_SHP)
 gpd_network_dataframe = gpd.read_file(INPUT_NETWORK_FILE_SHP)
+
 '''用以标记数据是否过期，默认为False，改为True并删除所有缓存文件后，将从头生成所有数据'''
 outdated = False
 
@@ -35,16 +36,13 @@ def geopandas_min_dist(point, gpd_dataframe, initial_buffer=0.005):
 
     参数
     ----------
-    point : shapely.POINT
-        待寻找最近线段的点
-    gpd_dataframe : geopandas.GeoDataFrame
-        存储河网线段的GeoDataFrame数据结构
-    initial_buffer : float
-        给点加的buffer（搜寻半径）大小，初始为0.005度，约为550米
+    point : shapely.POINT，待寻找最近线段的点
+    gpd_dataframe : geopandas.GeoDataFrame，存储河网线段的GeoDataFrame数据结构
+    initial_buffer : float，给点加的buffer（搜寻半径）大小，初始为0.005度，约为550米
 
     返回
     ----------
-    GeoDataFrame中的一个Series（对应图层属性表中一行+geometry项），实际运行中通常取其geometry项
+    GeoDataFrame中的一个Series（对应图层属性表中一行+geometry项），实际运行中通常取其geometry
     """
     buffer_steps = 0.002
     # 给点或者其他geometry加buffer
@@ -67,8 +65,7 @@ def get_extrapolated_line(source_coord, coord, extrapolate_ratio):
     """
     参数
     ----------
-    source_coord: 源点坐标，为浮点2元组（tuple）
-        待寻找最近线段的点
+    source_coord: 源点坐标，为浮点2元组（tuple），为待寻找最近线段的点
     coord: 另一点坐标，也是浮点2元组
     extrapolate_ratio: 延长率
 
