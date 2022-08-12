@@ -9,9 +9,13 @@
 运行完毕后至少会生成5个缓存文件，功效分别为：
 
 up_down_paths.txt：存储所有上下游关系
+
 source_project_points.csv：源站点与河网线上投影点之间关系，加快计算速度，一般不必关注
+
 nearest_line_project_points.csv：河网线上投影点与河网线之间关系，加快计算速度，一般不必关注
+
 network_graph.edgelist：河网线和站点投影点构成的图边表文件，加快计算速度，一般不必关注
+
 origin_graph.edgelist：河网线自己构成的图边表文件，加快计算速度，一般不必关注
 
 如果要换用其他图层文件重新生成上下游关系，应删除所有.csv、.edgelist、.txt缓存文件再将outdated项改为True运行；如果一段时间内只在这些缓存文件上寻找上下游关系，将outdated指定为False并运行相关测试即可。
