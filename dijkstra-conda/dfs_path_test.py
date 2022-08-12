@@ -23,10 +23,11 @@ from shapely.wkt import loads
 INPUT_NETWORK_FILE_SHP = os.path.relpath("test_data/near_changchun_cut.shp")
 INPUT_NODE_FILE_SHP = os.path.relpath("test_data/near_changchun_dots.shp")
 gpd_nodes_dataframe = gpd.read_file(INPUT_NODE_FILE_SHP)
+'''站点数据.shp文件'''
 gpd_network_dataframe = gpd.read_file(INPUT_NETWORK_FILE_SHP)
-
-'''用以标记数据是否过期，默认为False，改为True并删除所有缓存文件后，将从头生成所有数据'''
+'''河网数据.shp文件'''
 outdated = False
+'''用以标记数据是否过期，默认为False，改为True并删除所有缓存文件后，将从头生成所有数据'''
 
 
 def geopandas_min_dist(point, gpd_dataframe, initial_buffer=0.005):
