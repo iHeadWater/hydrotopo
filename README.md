@@ -4,7 +4,7 @@
 
 如果是第一次生成，需要将outdated项改为True，然后将INPUT_NETWORK_FILE_SHP所对应路径改为所需河网线图层所在路径，INPUT_NODE_FILE_SHP所对应路径改为所需站点图层所在路径，注意是相对路径。（如果感觉难以理解，只需要将两个图层文件拖到dfs_path_test.py所在文件夹下，然后将路径改为相应文件名即可）
 
-之后就可以直接运行，等待进程完成，main方法里可以指定相关测试，分别为show_upstream_stations_graph、show_downstream_stations、upstream_node_on_mainstream方法，详情见dfs_path_test.py里的文档注释。
+之后就可以直接运行，等待进程完成，main方法里可以指定相关测试，分别为show_upstream_stations_graph、show_downstream_stations、upstream_node_on_mainstream方法，详情见dfs_path_test.py里的文档注释或者这篇文档：https://station-simulator.readthedocs.io/zh_CN/latest/reference/dfs_path_test.html
 
 运行完毕后至少会生成5个缓存文件，功效分别为：
 
