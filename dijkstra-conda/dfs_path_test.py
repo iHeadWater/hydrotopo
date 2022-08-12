@@ -38,7 +38,9 @@ def geopandas_min_dist(point, gpd_dataframe, initial_buffer=0.005):
     参数
     ----------
     point : shapely.POINT，待寻找最近线段的点
+    
     gpd_dataframe : geopandas.GeoDataFrame，存储河网线段的GeoDataFrame数据结构
+    
     initial_buffer : float，给点加的buffer（搜寻半径）大小，初始为0.005度，约为550米
 
     返回
@@ -67,7 +69,9 @@ def get_extrapolated_line(source_coord, coord, extrapolate_ratio):
     参数
     ----------
     source_coord: 源点坐标，为浮点2元组（tuple），为待寻找最近线段的点
+    
     coord: 另一点坐标，也是浮点2元组
+    
     extrapolate_ratio: 延长率
 
     返回
@@ -87,11 +91,13 @@ def tie_outside_node(gpd_df_nodes, gpd_df_network):
     参数
     ----------
     gpd_df_nodes: 存储站点数据的GeoDataFrame，参考本文件开头gpd_nodes_dataframe
+    
     gpd_df_network: 存储河网（所有LineString）数据的GeoDataFrame，参考本文件开头gpd_network_dataframe
 
     返回
     ----------
     nearest_point_line_dict: 线上投影点和最近河流线的对应列表
+    
     source_point_line_dict: 原站点和站点在线上投影点的对应列表
     """
     if (outdated is False) | ((outdated is True) & os.path.exists('source_project_points.csv') & os.path.exists(
@@ -172,6 +178,7 @@ def build_graph(nodes_df: GeoDataFrame, edges_df: GeoDataFrame):
     参数
     ----------
     nodes_df: 存储站点数据的GeoDataFrame，参考本文件开头gpd_nodes_dataframe
+    
     edges_df: 存储河网（所有LineString）数据的GeoDataFrame，参考本文件开头gpd_network_dataframe
 
     返回
@@ -213,13 +220,17 @@ def get_upstream_stations(gpd_nodes_df: GeoDataFrame, gpd_network_df: GeoDataFra
     参数
     ----------
     gpd_nodes_df: 存储站点数据的GeoDataFrame，参考本文件开头gpd_nodes_dataframe
+    
     gpd_network_df: 存储河网（所有LineString）数据的GeoDataFrame，参考本文件开头gpd_network_dataframe
+    
     station_index: 站点图层中的标号，本例中从0开始，针对不同数据，可以从图层属性表中行号辅助判断
+    
     cutoff: 同一条河上最多可以上溯几个水文站，默认为int.max（当然也可以指定一个很大的数），即不限数量
 
     返回
     ----------
     upstream_graph: 从当前站点开始，河网与上游所有站点投影点构成的上游子图
+    
     set_up_no_dup: 含有当前站点所有上游站点信息，元素为string形式
     """
     stations_up_list = []
@@ -277,8 +288,11 @@ def get_downstream_stations(gpd_nodes_df: GeoDataFrame, gpd_network_df: GeoDataF
     参数
     ----------
     gpd_nodes_df: 存储站点数据的GeoDataFrame，参考本文件开头gpd_nodes_dataframe
+    
     gpd_network_df: 存储河网（所有LineString）数据的GeoDataFrame，参考本文件开头gpd_network_dataframe
+    
     station_index: 站点图层中的标号，本例中从0开始，针对不同数据，可以从图层属性表中行号辅助判断
+    
     cutoff: 同一条河上最多可以往下寻找几个水文站，默认为int.max（当然也可以指定一个很大的数），即不限数量
 
     返回
@@ -317,14 +331,19 @@ def get_upstream_stations_graph(gpd_nodes_df: GeoDataFrame, gpd_network_df: GeoD
     参数
     ----------
     gpd_nodes_df: 存储站点数据的GeoDataFrame，参考本文件开头gpd_nodes_dataframe
+    
     gpd_network_df: 存储河网（所有LineString）数据的GeoDataFrame，参考本文件开头gpd_network_dataframe
+    
     number: 站点图层中的标号，本例中从0开始，针对不同数据，可以从图层属性表中行号辅助判断
+    
     cutoff: 同一条河上最多可以上溯几个水文站，默认为int.max（当然也可以指定一个很大的数），即不限数量
 
     返回
     ----------
     upstream_graph: 从当前站点开始，河网与上游所有站点投影点构成的上游子图
+    
     new_graph: 当前站点及上游所有站点构成的子图
+    
     origin_graph: 根据河源唯远判断干支流的原始河流抽象图
     """
     upstream_graph = get_upstream_stations(gpd_nodes_df, gpd_network_df, number, cutoff)[0]
@@ -361,6 +380,7 @@ def write_path_file(gpd_nodes_df: GeoDataFrame, gpd_network_df: GeoDataFrame):
     参数
     ----------
     gpd_nodes_df: 存储站点数据的GeoDataFrame，参考本文件开头gpd_nodes_dataframe
+    
     gpd_network_df: 存储河网（所有LineString）数据的GeoDataFrame，参考本文件开头gpd_network_dataframe
     """
     with open("up_down_paths.txt", mode='w+') as fp:
@@ -381,8 +401,11 @@ def show_upstream_stations_graph(gpd_nodes_df: GeoDataFrame, gpd_network_df: Geo
     参数
     ----------
     gpd_nodes_df: 存储站点数据的GeoDataFrame，参考本文件开头gpd_nodes_dataframe
+    
     gpd_network_df: 存储河网（所有LineString）数据的GeoDataFrame，参考本文件开头gpd_network_dataframe
+    
     number: 站点图层中的标号，本例中从0开始，针对不同数据，可以从图层属性表中行号辅助判断
+    
     cutoff: 同一条河上最多可以上溯几个水文站，默认为int.max（当然也可以指定一个很大的数），即不限数量
     """
     upstream_graph = get_upstream_stations_graph(gpd_nodes_df, gpd_network_df, number, cutoff)[1]
@@ -400,8 +423,11 @@ def show_downstream_stations(gpd_nodes_df: GeoDataFrame, gpd_network_df: GeoData
     参数
     ----------
     gpd_nodes_df: 存储站点数据的GeoDataFrame，参考本文件开头gpd_nodes_dataframe
+    
     gpd_network_df: 存储河网（所有LineString）数据的GeoDataFrame，参考本文件开头gpd_network_dataframe
+    
     number: 站点图层中的标号，本例中从0开始，针对不同数据，可以从图层属性表中行号辅助判断
+    
     cutoff: 同一条河上最多可以往下寻找几个水文站，默认为int.max（当然也可以指定一个很大的数），即不限数量
     """
     list_stations = get_downstream_stations(gpd_nodes_df, gpd_network_df, number, cutoff)
@@ -416,8 +442,11 @@ def upstream_node_on_mainstream(gpd_nodes_df, gpd_network_df, number_src, number
     参数
     ----------
     gpd_nodes_df: 存储站点数据的GeoDataFrame，参考本文件开头gpd_nodes_dataframe
+    
     gpd_network_df: 存储河网（所有LineString）数据的GeoDataFrame，参考本文件开头gpd_network_dataframe
+    
     number_src: 用以确定上游流域的站点号，可以从图层属性表中辅助判断
+    
     number_target: 待判断的站点号
     """
     # number_src是要生成子图的原点号，number_target是要判断干支流的点号
