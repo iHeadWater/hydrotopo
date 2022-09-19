@@ -20,7 +20,6 @@ setup(
     version=''.join(random.sample(string.digits, 8)),
     description='A test project',
     entry_points={'console_scripts': ['calcstream = dijkstra_conda.cli:main']},
-    install_requires=requirements,
     long_description='https://readthedocs.org/projects/calctest/',
     author='dijkstra_conda-test',
     url='https://github.com/iHeadWater/dijkstra-conda',
@@ -29,8 +28,7 @@ setup(
     ],
     package_dir={'dijkstra_conda': 'dijkstra_conda'},
     include_package_data=True,
-    install_requires=[
-    ],
+    install_requires=requirements,
     license='MIT',
     zip_safe=False,
     keywords='dijkstra_conda',
