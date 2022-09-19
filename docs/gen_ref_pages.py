@@ -4,9 +4,9 @@ from pathlib import Path
 import mkdocs_gen_files
 
 nav = mkdocs_gen_files.Nav()
-for path in sorted(Path("dijkstra-conda").rglob("*.py")):
-    module_path = path.relative_to("dijkstra-conda").with_suffix("")
-    doc_path = path.relative_to("dijkstra-conda").with_suffix(".md")
+for path in sorted(Path("dijkstra_conda").rglob("*.py")):
+    module_path = path.relative_to("dijkstra_conda").with_suffix("")
+    doc_path = path.relative_to("dijkstra_conda").with_suffix(".md")
     full_doc_path = Path("reference", doc_path)
     parts = tuple(module_path.parts)
     if parts[-1] == "__init__":

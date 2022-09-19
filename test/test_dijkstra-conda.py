@@ -1,11 +1,11 @@
 """
-Tests for `dijkstra-conda` module.
+Tests for `dijkstra_conda` module.
 """
 import pytest
-from dijkstra-conda import dijkstra-conda
+import dijkstra_conda
 
 
-class TestDijkstra-conda(object):
+class TestDijkstra_conda(object):
 
     @classmethod
     def setup_class(cls):

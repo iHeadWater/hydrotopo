@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#coding=utf-8
+# coding=utf-8
 
 import os
 import sys
@@ -11,29 +11,28 @@ try:
 except ImportError:
     from distutils.core import setup
 
-
 if sys.argv[-1] == 'publish':
     os.system('python setup.py sdist upload')
     sys.exit()
 
 setup(
-    name='dijkstra-conda',
+    name='dijkstra_conda',
     version=''.join(random.sample(string.digits, 8)),
     description='A test project',
-    entry_points={'console_scripts': ['calcstream = dijkstra-conda.cli:main']},
+    entry_points={'console_scripts': ['calcstream = dijkstra_conda.cli:main']},
     long_description='https://readthedocs.org/projects/calctest/',
-    author='dijkstra-conda-test',
+    author='dijkstra_conda-test',
     url='https://github.com/iHeadWater/dijkstra-conda',
     packages=[
-        'dijkstra-conda',
+        'dijkstra_conda',
     ],
-    package_dir={'dijkstra-conda': 'dijkstra-conda'},
+    package_dir={'dijkstra_conda': 'dijkstra_conda'},
     include_package_data=True,
     install_requires=[
     ],
     license='MIT',
     zip_safe=False,
-    keywords='dijkstra-conda',
+    keywords='dijkstra_conda',
     classifiers=[
         'Development Status :: 2 - Pre-Alpha',
         'Intended Audience :: Developers',

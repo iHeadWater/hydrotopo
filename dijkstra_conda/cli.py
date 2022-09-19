@@ -1,7 +1,7 @@
 import os
 import click
 import geopandas as gpd
-from dfs_path_test import show_upstream_stations_graph, show_downstream_stations, upstream_node_on_mainstream, write_path_file
+from .dfs_path_test import show_upstream_stations_graph, show_downstream_stations, upstream_node_on_mainstream, write_path_file
 
 
 @click.command(context_settings=dict(help_option_names=['-h', '--help']))
