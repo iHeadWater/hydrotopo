@@ -1,13 +1,11 @@
 import os
 import sys
-import time
 
 import bidict as bd
-import pandas as pd
-import geopandas as gpd
 import matplotlib.pyplot as plt
 import multidict as md
 import networkx as nx
+import pandas as pd
 from geopandas import GeoDataFrame
 from networkx import DiGraph
 from shapely import geometry
@@ -20,32 +18,22 @@ from shapely.wkt import loads
 河网图层只接受LineString，不接受MultiLineString，输入前请将其转化为单部件
 """
 
-INPUT_NETWORK_FILE_SHP = os.path.relpath("test_data/near_changchun_cut.shp")
-INPUT_NODE_FILE_SHP = os.path.relpath("test_data/near_changchun_dots.shp")
-gpd_nodes_dataframe = gpd.read_file(INPUT_NODE_FILE_SHP)
-'''站点数据.shp文件'''
-gpd_network_dataframe = gpd.read_file(INPUT_NETWORK_FILE_SHP)
-'''河网数据.shp文件'''
-outdated = False
-'''用以标记数据是否过期，默认为False，改为True并删除所有缓存文件后，将从头生成所有数据'''
-
 
 def geopandas_min_dist(point, gpd_dataframe, initial_buffer=0.005):
     """
     https://gis.stackexchange.com/questions/266730/filter-by-bounding-box-in-geopandas/266833
     从限定范围内获取图元，本例中为河网线
-
     参数
     ----------
-    point : shapely.POINT，待寻找最近线段的点
-    
-    gpd_dataframe : geopandas.GeoDataFrame，存储河网线段的GeoDataFrame数据结构
-    
-    initial_buffer : float，给点加的buffer（搜寻半径）大小，初始为0.005度，约为550米
-
+    point : shapely.POINT
+        待寻找最近线段的点
+    gpd_dataframe : geopandas.GeoDataFrame
+        存储河网线段的GeoDataFrame数据结构
+    initial_buffer : float
+        给点加的buffer（搜寻半径）大小，初始为0.005度，约为550米
     返回
     ----------
-    GeoDataFrame中的一个Series（对应图层属性表中一行+geometry项），实际运行中通常取其geometry
+    GeoDataFrame中的一个Series（对应图层属性表中一行+geometry项），实际运行中通常取其geometry项
     """
     buffer_steps = 0.002
     # 给点或者其他geometry加buffer
@@ -68,12 +56,10 @@ def get_extrapolated_line(source_coord, coord, extrapolate_ratio):
     """
     参数
     ----------
-    source_coord: 源点坐标，为浮点2元组（tuple），为待寻找最近线段的点
-    
+    source_coord: 源点坐标，为浮点2元组（tuple）
+        待寻找最近线段的点
     coord: 另一点坐标，也是浮点2元组
-    
     extrapolate_ratio: 延长率
-
     返回
     ----------
     由source_coord和coord确定的一条线段延长线
@@ -84,26 +70,23 @@ def get_extrapolated_line(source_coord, coord, extrapolate_ratio):
     return LineString([source, c])
 
 
-def tie_outside_node(gpd_df_nodes, gpd_df_network):
+def tie_outside_node(gpd_df_nodes, gpd_df_network, outdated: bool, input_path='', output_path=''):
     """
     值得注意，由于tie_outside_node操作很费时，故工程中如有source_project_points.csv文件和nearest_line_project_points.csv文件，
     程序会优先从这两个文件中读取数据，所以如要从头生成，必须删除这两个文件
     参数
     ----------
     gpd_df_nodes: 存储站点数据的GeoDataFrame，参考本文件开头gpd_nodes_dataframe
-    
     gpd_df_network: 存储河网（所有LineString）数据的GeoDataFrame，参考本文件开头gpd_network_dataframe
-
     返回
     ----------
     nearest_point_line_dict: 线上投影点和最近河流线的对应列表
-    
     source_point_line_dict: 原站点和站点在线上投影点的对应列表
     """
-    if (outdated is False) | ((outdated is True) & os.path.exists('source_project_points.csv') & os.path.exists(
-            'nearest_line_project_points.csv')):
-        source_point_frame = pd.read_csv('source_project_points.csv')
-        line_point_frame = pd.read_csv('nearest_line_project_points.csv')
+    if (outdated is False) | ((outdated is True) & os.path.exists(os.path.join(input_path, 'source_project_points.csv')) &
+                              os.path.exists(os.path.join(input_path, 'nearest_line_project_points.csv'))):
+        source_point_frame = pd.read_csv(os.path.join(input_path, 'source_project_points.csv'))
+        line_point_frame = pd.read_csv(os.path.join(input_path, 'nearest_line_project_points.csv'))
         source_point_line_dict = bd.bidict()
         nearest_point_line_dict = md.MultiDict()
         for i in range(0, len(source_point_frame)):
@@ -121,6 +104,7 @@ def tie_outside_node(gpd_df_nodes, gpd_df_network):
         source_point_line_dict = bd.bidict()
         nearest_point_line_dict = md.MultiDict()
         for x in range(0, len(gpd_df_nodes)):
+            print("Tying nodes:" + str(x))
             source_target_nodes_geom = gpd_df_nodes.geometry[x]
             nearest_line = geopandas_min_dist(gpd_df_nodes.geometry[x], gpd_df_network).geometry
             # 用以解决低质数据，下文while处若循环1000次后还连不上，就放弃
@@ -168,31 +152,29 @@ def tie_outside_node(gpd_df_nodes, gpd_df_network):
         source_point_line_frame = pd.DataFrame({'source': source_point_line_dict.keys(), 'point': source_point_line_dict.values()})
         nearest_point_line_frame = pd.DataFrame({'nearest_line_wkt': nearest_point_line_dict.keys(),
                                                  'nearest_point': nearest_point_line_dict.values()})
-        source_point_line_frame.to_csv('source_project_points.csv', index=False)
-        nearest_point_line_frame.to_csv('nearest_line_project_points.csv', index=False)
+        source_point_line_frame.to_csv(os.path.join(output_path, 'source_project_points.csv'), index=False)
+        nearest_point_line_frame.to_csv(os.path.join(output_path, 'nearest_line_project_points.csv'), index=False)
     return source_point_line_dict, nearest_point_line_dict
 
 
-def build_graph(nodes_df: GeoDataFrame, edges_df: GeoDataFrame):
+def build_graph(nodes_df: GeoDataFrame, edges_df: GeoDataFrame, outdated: bool, input_path='', output_path=''):
     """
     参数
     ----------
     nodes_df: 存储站点数据的GeoDataFrame，参考本文件开头gpd_nodes_dataframe
-    
     edges_df: 存储河网（所有LineString）数据的GeoDataFrame，参考本文件开头gpd_network_dataframe
-
     返回
     ----------
     network_graph: 河网与站点投影点共同构成的图
     """
-    if (outdated is False) & (os.path.exists('network_graph.edgelist')):
+    if (outdated is False) & (os.path.exists(os.path.join(input_path, 'network_graph.edgelist'))):
         network_graph = nx.read_edgelist(
-            'network_graph.edgelist', delimiter='|',
+            os.path.join(input_path, 'network_graph.edgelist'), delimiter='|',
             nodetype=lambda node: tuple([float(v) for v in str(node).strip("()").split(",")]),
             create_using=nx.DiGraph)
     else:
         network_graph: DiGraph = nx.DiGraph()
-        nearest_point_line_dict = tie_outside_node(nodes_df, edges_df)[1]
+        nearest_point_line_dict = tie_outside_node(nodes_df, edges_df, outdated, output_path)[1]
         for line in edges_df.geometry:
             line_wkt = line.wkt
             list_point_and_dis = []
@@ -210,62 +192,58 @@ def build_graph(nodes_df: GeoDataFrame, edges_df: GeoDataFrame):
                 src = line.coords[0]
                 dest = line.coords[-1]
                 network_graph.add_edge(src, dest)
-        nx.write_edgelist(network_graph, 'network_graph.edgelist', delimiter='|')
+        nx.write_edgelist(network_graph, os.path.join(output_path, 'network_graph.edgelist'), delimiter='|')
     return network_graph
 
 
 def get_upstream_stations(gpd_nodes_df: GeoDataFrame, gpd_network_df: GeoDataFrame,
-                          station_index: int, cutoff: int = 2147483647):
+                          station_index: int, outdated: bool, cutoff: int = 2147483647, input_path='', output_path=''):
     """
     参数
     ----------
     gpd_nodes_df: 存储站点数据的GeoDataFrame，参考本文件开头gpd_nodes_dataframe
-    
     gpd_network_df: 存储河网（所有LineString）数据的GeoDataFrame，参考本文件开头gpd_network_dataframe
-    
     station_index: 站点图层中的标号，本例中从0开始，针对不同数据，可以从图层属性表中行号辅助判断
-    
     cutoff: 同一条河上最多可以上溯几个水文站，默认为int.max（当然也可以指定一个很大的数），即不限数量
-
     返回
     ----------
     upstream_graph: 从当前站点开始，河网与上游所有站点投影点构成的上游子图
-    
     set_up_no_dup: 含有当前站点所有上游站点信息，元素为string形式
     """
     stations_up_list = []
-    stations_graph = build_graph(gpd_nodes_df, gpd_network_df)
-    source_target_dict = tie_outside_node(gpd_nodes_df, gpd_network_df)[0]
+    stations_graph = build_graph(gpd_nodes_df, gpd_network_df, outdated, input_path, output_path)
+    source_target_dict = tie_outside_node(gpd_nodes_df, gpd_network_df, outdated, input_path, output_path)[0]
     source_node_coord = (gpd_nodes_df.geometry[station_index].x, gpd_nodes_df.geometry[station_index].y)
     target_node_coord = source_target_dict.get(source_node_coord)
-    if os.path.exists("upstream_graph_" + str(station_index) + "_cutoff_" + str(cutoff) + ".edgelist"):
-        if (outdated is False) & (os.path.exists('up_down_paths.txt')):
+    upstream_graph_path = "upstream_graph_" + str(station_index) + "_cutoff_" + str(cutoff) + ".edgelist"
+    if os.path.exists(os.path.join(input_path, upstream_graph_path)):
+        if (outdated is False) & (os.path.exists(os.path.join(input_path, 'up_down_paths.txt'))):
             set_up_no_dup = set()
-            with open("up_down_paths.txt", mode='r+') as fp:
+            with open(os.path.join(input_path, 'up_down_paths.txt'), mode='r+') as fp:
                 for line_str in fp.readlines():
                     line_str_head = line_str.split(':')[0]
                     line_str_body = line_str.split(':')[1]
                     line_str_stations = line_str_body.split(',')
                     for i in range(0, len(line_str_stations)):
                         line_str_stations[i] = line_str_stations[i].strip('\n').strip(' ').strip("'").strip('"')
-                    if (line_str_head == 'upstream') & ('station' + str(station_index) == line_str_stations[-1]):
+                    if (line_str_head == 'upstream') & ('sta' + str(station_index) == line_str_stations[-1]):
                         set_up_no_dup.add(str(line_str_stations[-cutoff:]))
-            upstream_graph = nx.read_edgelist("upstream_graph_" + str(station_index) + "_cutoff_" + str(cutoff) + ".edgelist",
+            upstream_graph = nx.read_edgelist(os.path.join(input_path, upstream_graph_path),
                                               delimiter='|', nodetype=lambda t: tuple([float(v) for v in str(t).strip("()").split(",")]),
                                               create_using=nx.DiGraph)
         else:
             set_up_no_dup = set()
-            upstream_graph = nx.read_edgelist("upstream_graph_" + str(station_index) + "_cutoff_" + str(cutoff) + ".edgelist",
+            upstream_graph = nx.read_edgelist(os.path.join(input_path, upstream_graph_path),
                                               delimiter='|', nodetype=lambda t: tuple([float(v) for v in str(t).strip("()").split(",")]),
                                               create_using=nx.DiGraph)
     else:
-        source_target_dict = tie_outside_node(gpd_nodes_df, gpd_network_df)[0]
+        source_target_dict = tie_outside_node(gpd_nodes_df, gpd_network_df, outdated, input_path, output_path)[0]
         source_node_coord = (gpd_nodes_df.geometry[station_index].x, gpd_nodes_df.geometry[station_index].y)
         target_node_coord = source_target_dict.get(source_node_coord)
         upstream_graph = stations_graph.subgraph(nx.ancestors(stations_graph, target_node_coord) | {target_node_coord}).copy()
         if cutoff != 2147483647:
             nx.write_edgelist(upstream_graph,
-                              "upstream_graph_" + str(station_index) + "_cutoff_" + str(cutoff) + ".edgelist", delimiter='|')
+                              os.path.join(output_path, upstream_graph_path), delimiter='|')
         set_up_no_dup = set()  # 给找到的路径去重
     for coord in upstream_graph.nodes:
         if upstream_graph.in_degree(coord) == 0 & nx.generic.has_path(upstream_graph, coord, target_node_coord):
@@ -275,7 +253,7 @@ def get_upstream_stations(gpd_nodes_df: GeoDataFrame, gpd_network_df: GeoDataFra
                         point = Point(source_target_dict.inv[path_coord])
                         for x in range(0, len(gpd_nodes_df)):
                             if gpd_nodes_df.geometry[x] == point:
-                                stations_up_list.append('station' + str(x))
+                                stations_up_list.append('sta' + str(x))
                 if len(stations_up_list) > 1:
                     set_up_no_dup.add(str(stations_up_list[-cutoff:]))
                 stations_up_list.clear()
@@ -283,36 +261,32 @@ def get_upstream_stations(gpd_nodes_df: GeoDataFrame, gpd_network_df: GeoDataFra
 
 
 def get_downstream_stations(gpd_nodes_df: GeoDataFrame, gpd_network_df: GeoDataFrame,
-                            station_index: int, cutoff: int = 2147483647):
+                            station_index: int, outdated: bool, cutoff: int = 2147483647, input_path='', output_path=''):
     """
     参数
     ----------
     gpd_nodes_df: 存储站点数据的GeoDataFrame，参考本文件开头gpd_nodes_dataframe
-    
     gpd_network_df: 存储河网（所有LineString）数据的GeoDataFrame，参考本文件开头gpd_network_dataframe
-    
     station_index: 站点图层中的标号，本例中从0开始，针对不同数据，可以从图层属性表中行号辅助判断
-    
     cutoff: 同一条河上最多可以往下寻找几个水文站，默认为int.max（当然也可以指定一个很大的数），即不限数量
-
     返回
     ----------
     list_stations[:cutoff]: 目标下游站点最近的几个站
     """
     list_stations = []
-    if (outdated is False) & os.path.exists('up_down_paths.txt'):
-        with open('up_down_paths.txt', mode='r+') as fp:
+    if (outdated is False) & os.path.exists(os.path.exists(os.path.join(input_path, 'up_down_paths.txt'))):
+        with open(os.path.join(input_path, 'up_down_paths.txt'), mode='r+') as fp:
             for line_str in fp.readlines():
                 line_str_head = line_str.split(':')[0]
                 line_str_body = line_str.split(':')[1]
                 line_str_station = line_str_body.split(',')
                 for i in range(0, len(line_str_station)):
                     line_str_station[i] = line_str_station[i].strip('\n').strip(' ').strip("'").strip('"')
-                if (line_str_head == 'downstream') & (('station' + str(station_index)) == line_str_station[0]):
+                if (line_str_head == 'downstream') & (('sta' + str(station_index)) == line_str_station[0]):
                     list_stations = line_str_station
     else:
-        stations_graph = build_graph(gpd_nodes_df, gpd_network_df)
-        source_target_dict = tie_outside_node(gpd_nodes_df, gpd_network_df)[0]
+        stations_graph = build_graph(gpd_nodes_df, gpd_network_df, outdated, input_path, output_path)
+        source_target_dict = tie_outside_node(gpd_nodes_df, gpd_network_df, outdated, input_path, output_path)[0]
         source_node_coord = (gpd_nodes_df.geometry[station_index].x, gpd_nodes_df.geometry[station_index].y)
         target_node_coord = source_target_dict.get(source_node_coord)
         dfs_tree_path = nx.dfs_tree(stations_graph, target_node_coord)
@@ -322,33 +296,28 @@ def get_downstream_stations(gpd_nodes_df: GeoDataFrame, gpd_network_df: GeoDataF
                 point = Point(source_coord)
                 for x in range(0, len(gpd_nodes_df)):
                     if gpd_nodes_df.geometry[x] == point:
-                        list_stations.append('station' + str(x))
+                        list_stations.append('sta' + str(x))
     return list_stations[:cutoff]
 
 
-def get_upstream_stations_graph(gpd_nodes_df: GeoDataFrame, gpd_network_df: GeoDataFrame, number: int, cutoff: int = 2147483647):
+def get_upstream_stations_graph(gpd_nodes_df: GeoDataFrame, gpd_network_df: GeoDataFrame, number: int, outdated: bool,
+                                cutoff: int = 2147483647, input_path='', output_path=''):
     """
     参数
     ----------
     gpd_nodes_df: 存储站点数据的GeoDataFrame，参考本文件开头gpd_nodes_dataframe
-    
     gpd_network_df: 存储河网（所有LineString）数据的GeoDataFrame，参考本文件开头gpd_network_dataframe
-    
     number: 站点图层中的标号，本例中从0开始，针对不同数据，可以从图层属性表中行号辅助判断
-    
     cutoff: 同一条河上最多可以上溯几个水文站，默认为int.max（当然也可以指定一个很大的数），即不限数量
-
     返回
     ----------
     upstream_graph: 从当前站点开始，河网与上游所有站点投影点构成的上游子图
-    
     new_graph: 当前站点及上游所有站点构成的子图
-    
     origin_graph: 根据河源唯远判断干支流的原始河流抽象图
     """
-    upstream_graph = get_upstream_stations(gpd_nodes_df, gpd_network_df, number, cutoff)[0]
-    if (outdated is False) & os.path.exists('origin_graph.edgelist'):
-        origin_graph = nx.read_edgelist('origin_graph.edgelist', delimiter='|',
+    upstream_graph = get_upstream_stations(gpd_nodes_df, gpd_network_df, number, outdated, cutoff, input_path, output_path)[0]
+    if (outdated is False) & os.path.exists(os.path.join(input_path, 'origin_graph.edgelist')):
+        origin_graph = nx.read_edgelist(os.path.join(input_path, 'origin_graph.edgelist'), delimiter='|',
                                         nodetype=lambda t: tuple([float(v) for v in str(t).strip("()").split(",")]),
                                         create_using=nx.DiGraph, data=(("weight", float),))
     else:
@@ -358,7 +327,7 @@ def get_upstream_stations_graph(gpd_nodes_df: GeoDataFrame, gpd_network_df: GeoD
             dest = line.coords[-1]
             origin_graph.add_edge(src, dest, weight=line.length)
     new_graph = nx.DiGraph()
-    source_target_dict = tie_outside_node(gpd_nodes_df, gpd_network_df)[0]
+    source_target_dict = tie_outside_node(gpd_nodes_df, gpd_network_df, outdated, input_path, output_path)[0]
     source_node_coord = (gpd_nodes_df.geometry[number].x, gpd_nodes_df.geometry[number].y)
     target_node_coord = source_target_dict.get(source_node_coord)
     for coord in upstream_graph.nodes:
@@ -369,92 +338,82 @@ def get_upstream_stations_graph(gpd_nodes_df: GeoDataFrame, gpd_network_df: GeoD
                     if path_coord in origin_graph.nodes:
                         list_up_path.remove(path_coord)
                 nx.add_path(new_graph, list_up_path[-cutoff:])
-    nx.write_edgelist(origin_graph, 'origin_graph.edgelist', delimiter='|', data=["weight"])
+    nx.write_edgelist(origin_graph, os.path.join(output_path, 'origin_graph.edgelist'), delimiter='|', data=["weight"])
     return upstream_graph, new_graph, origin_graph
 
 
-def write_path_file(gpd_nodes_df: GeoDataFrame, gpd_network_df: GeoDataFrame):
+def write_path_file(gpd_nodes_df: GeoDataFrame, gpd_network_df: GeoDataFrame, output_path=''):
     """
     将上下游信息分行保存在txt文件中以便下次读取，upstream: 代表上游，downstream: 代表下游
-
     参数
     ----------
     gpd_nodes_df: 存储站点数据的GeoDataFrame，参考本文件开头gpd_nodes_dataframe
-    
     gpd_network_df: 存储河网（所有LineString）数据的GeoDataFrame，参考本文件开头gpd_network_dataframe
     """
-    with open("up_down_paths.txt", mode='w+') as fp:
+    with open(os.path.join(output_path, "up_down_paths.txt"), mode='w+') as fp:
         for i in range(0, len(gpd_nodes_df)):
             print('Writing stream: ' + str(i))
-            set_up_no_dup = get_upstream_stations(gpd_nodes_df, gpd_network_df, i)[1]
+            set_up_no_dup = get_upstream_stations(gpd_nodes_df, gpd_network_df, i, True, 2147483647, output_path)[1]
             list_up_no_dup = list(set_up_no_dup)
             for str_path in list_up_no_dup:
                 fp.writelines("upstream: " + str_path.lstrip('[').rstrip(']') + "\n")
-            list_down = get_downstream_stations(gpd_nodes_df, gpd_network_df, i)
+            list_down = get_downstream_stations(gpd_nodes_df, gpd_network_df, i, True)
             fp.writelines("downstream: " + str(list_down).lstrip('[').rstrip(']') + "\n")
 
 
-def show_upstream_stations_graph(gpd_nodes_df: GeoDataFrame, gpd_network_df: GeoDataFrame, number: int, cutoff: int = 2147483647):
+def show_upstream_stations_graph(gpd_nodes_df: GeoDataFrame, gpd_network_df: GeoDataFrame, number: int, outdated: bool,
+                                 input_path, output_path, cutoff: int = 2147483647):
     """
     显示当前站点的上游站点图
-
     参数
     ----------
     gpd_nodes_df: 存储站点数据的GeoDataFrame，参考本文件开头gpd_nodes_dataframe
-    
     gpd_network_df: 存储河网（所有LineString）数据的GeoDataFrame，参考本文件开头gpd_network_dataframe
-    
     number: 站点图层中的标号，本例中从0开始，针对不同数据，可以从图层属性表中行号辅助判断
-    
     cutoff: 同一条河上最多可以上溯几个水文站，默认为int.max（当然也可以指定一个很大的数），即不限数量
     """
-    upstream_graph = get_upstream_stations_graph(gpd_nodes_df, gpd_network_df, number, cutoff)[1]
-    set_up_no_dup = get_upstream_stations(gpd_nodes_df, gpd_network_df, number, cutoff)[1]
+    upstream_graph = get_upstream_stations_graph(gpd_nodes_df, gpd_network_df, number, outdated, cutoff, input_path, output_path)[1]
+    set_up_no_dup = get_upstream_stations(gpd_nodes_df, gpd_network_df, number, outdated, cutoff, input_path, output_path)[1]
     for list_str in set_up_no_dup:
         print(list_str.lstrip('[').rstrip(']'))  # 输出的都是字串
     nx.draw(upstream_graph, node_size=10)
     plt.show()
+    plt.savefig(os.path.join(os.curdir, 'upstream_graph_' + str(number) + '_cutoff_' + str(cutoff) + '.png'))
 
 
-def show_downstream_stations(gpd_nodes_df: GeoDataFrame, gpd_network_df: GeoDataFrame, number: int, cutoff: int = 2147483647):
+def show_downstream_stations(gpd_nodes_df: GeoDataFrame, gpd_network_df: GeoDataFrame, number: int, outdated: bool,
+                             input_path, output_path, cutoff: int = 2147483647):
     """
     显示当前站点的下游站点列表
-
     参数
     ----------
     gpd_nodes_df: 存储站点数据的GeoDataFrame，参考本文件开头gpd_nodes_dataframe
-    
     gpd_network_df: 存储河网（所有LineString）数据的GeoDataFrame，参考本文件开头gpd_network_dataframe
-    
     number: 站点图层中的标号，本例中从0开始，针对不同数据，可以从图层属性表中行号辅助判断
-    
     cutoff: 同一条河上最多可以往下寻找几个水文站，默认为int.max（当然也可以指定一个很大的数），即不限数量
     """
-    list_stations = get_downstream_stations(gpd_nodes_df, gpd_network_df, number, cutoff)
+    list_stations = get_downstream_stations(gpd_nodes_df, gpd_network_df, number, outdated, cutoff, input_path, output_path)
     print(list_stations)
 
 
-def upstream_node_on_mainstream(gpd_nodes_df, gpd_network_df, number_src, number_target):
+def upstream_node_on_mainstream(gpd_nodes_df, gpd_network_df, number_src, number_target, outdated: bool, input_path=''):
     """
     以number_src为当前站点，判断number_target所代表的站点是否存在于当前站点上游流域的干支流中，存在三种结果：
     在支流中（In tributary），在干流中（In Mainstream），不在上游流域中
-
     参数
     ----------
     gpd_nodes_df: 存储站点数据的GeoDataFrame，参考本文件开头gpd_nodes_dataframe
-    
     gpd_network_df: 存储河网（所有LineString）数据的GeoDataFrame，参考本文件开头gpd_network_dataframe
-    
     number_src: 用以确定上游流域的站点号，可以从图层属性表中辅助判断
-    
     number_target: 待判断的站点号
     """
     # number_src是要生成子图的原点号，number_target是要判断干支流的点号
     source_point = (gpd_nodes_df.geometry[number_src].x, gpd_nodes_df.geometry[number_src].y)
     target_point = (gpd_nodes_df.geometry[number_target].x, gpd_nodes_df.geometry[number_target].y)
-    if (outdated is False) & (os.path.exists('nearest_line_project_points.csv') & os.path.exists('source_project_points.csv')):
-        nearest_line_project_df = pd.read_csv('nearest_line_project_points.csv')
-        source_project_point_dict = tie_outside_node(gpd_nodes_df, gpd_network_df)[0]
+    if (outdated is False) & (os.path.exists(os.path.join(input_path, 'nearest_line_project_points.csv')) & os.path.exists(
+            os.path.join(input_path, 'source_project_points.csv'))):
+        nearest_line_project_df = pd.read_csv(os.path.join(input_path, 'nearest_line_project_points.csv'))
+        source_project_point_dict = tie_outside_node(gpd_nodes_df, gpd_network_df, outdated, input_path)[0]
         source_nearest_point = source_project_point_dict.get(source_point)
         target_nearest_point = source_project_point_dict.get(target_point)
         nearest_source_line_wkt = nearest_line_project_df['nearest_line_wkt'][nearest_line_project_df['nearest_point'] ==
@@ -466,15 +425,15 @@ def upstream_node_on_mainstream(gpd_nodes_df, gpd_network_df, number_src, number
     else:
         nearest_target_line: LineString = geopandas_min_dist(Point(target_point), gpd_network_df).geometry
         nearest_source_line: LineString = geopandas_min_dist(Point(source_point), gpd_network_df).geometry
-    origin_graph = get_upstream_stations_graph(gpd_nodes_df, gpd_network_df, number_src)[2]
+    origin_graph = get_upstream_stations_graph(gpd_nodes_df, gpd_network_df, number_src, outdated)[2]
     origin_target_point = nearest_target_line.coords[0]
     origin_source_point = nearest_source_line.coords[-1]
     origin_graph_src_sub: DiGraph = nx.subgraph(origin_graph, nx.ancestors(origin_graph, origin_source_point) | {
         origin_source_point}).copy()
-    set_up_no_dup = get_upstream_stations(gpd_nodes_df, gpd_network_df, number_src, cutoff=10000)[1]
+    set_up_no_dup = get_upstream_stations(gpd_nodes_df, gpd_network_df, number_src, outdated, cutoff=10000)[1]
     in_basin = False
     for upstream_str in set_up_no_dup:
-        in_basin = in_basin | ('station' + str(number_target) in upstream_str)
+        in_basin = in_basin | ('sta' + str(number_target) in upstream_str)
         if in_basin is False:
             continue
         else:
@@ -488,24 +447,8 @@ def upstream_node_on_mainstream(gpd_nodes_df, gpd_network_df, number_src, number
                 print('In tributary: ' + str(line_stations))
                 break
             else:
-                cutoff = line_stations.index('station' + str(number_target))
+                cutoff = line_stations.index('sta' + str(number_target))
                 print('In Mainstream: ' + str(line_stations[cutoff:]))
                 break
     if in_basin is False:
         print(str(number_target) + ' is not in upstream basin of ' + str(number_src))
-
-
-if __name__ == '__main__':
-    index = 4
-    START_TIME = time.time()
-    show_upstream_stations_graph(gpd_nodes_dataframe, gpd_network_dataframe, index, 5)
-    print('____________________________________________________________________________')
-    print(upstream_node_on_mainstream(gpd_nodes_dataframe, gpd_network_dataframe, index, 28))
-    print('____________________________________________________________________________')
-    show_downstream_stations(gpd_nodes_dataframe, gpd_network_dataframe, index)
-    if outdated is True:
-        write_path_file(gpd_nodes_dataframe, gpd_network_dataframe)
-    STOP_TIME = time.time()
-    TOTAL_TIME = STOP_TIME - START_TIME
-    print('done:', TOTAL_TIME, 'seconds')
-    print("Finished")
