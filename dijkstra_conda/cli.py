@@ -1,7 +1,7 @@
 import os
 import click
-import geopandas as gpd
-from .dfs_path_test import show_upstream_stations_graph, show_downstream_stations, upstream_node_on_mainstream, write_path_file
+from shapefile import Reader
+from dfs_path_test import show_upstream_stations_graph, show_downstream_stations, upstream_node_on_mainstream, write_path_file
 
 
 @click.command(context_settings=dict(help_option_names=['-h', '--help']))
@@ -18,16 +18,16 @@ from .dfs_path_test import show_upstream_stations_graph, show_downstream_station
 def main(outdated, nodes_path, river_path, cur_sta, up_sta, cutoff, upstream, downstream, cache_dir, output_dir):
     input_network_file_shp = os.path.abspath(river_path)
     input_node_file_shp = os.path.relpath(nodes_path)
-    gpd_nodes_dataframe = gpd.read_file(input_node_file_shp)
-    gpd_network_dataframe = gpd.read_file(input_network_file_shp)
+    nodes_reader = Reader(input_node_file_shp)
+    network_reader = Reader(input_network_file_shp)
     if upstream is True:
-        show_upstream_stations_graph(gpd_nodes_dataframe, gpd_network_dataframe, cur_sta, outdated, cutoff, cache_dir, output_dir)
+        show_upstream_stations_graph(network_reader, nodes_reader, cur_sta, outdated, cutoff, cache_dir, output_dir)
     elif downstream is True:
-        show_downstream_stations(gpd_nodes_dataframe, gpd_network_dataframe, cur_sta, outdated, cutoff, cache_dir, output_dir)
+        show_downstream_stations(nodes_reader, network_reader, cur_sta, outdated, cutoff, cache_dir, output_dir)
     if up_sta is not None:
-        upstream_node_on_mainstream(gpd_nodes_dataframe, gpd_network_dataframe, cur_sta, up_sta, cache_dir)
+        upstream_node_on_mainstream(nodes_reader, network_reader, cur_sta, up_sta, cache_dir)
     if outdated is True:
-        write_path_file(gpd_nodes_dataframe, gpd_network_dataframe, output_dir)
+        write_path_file(nodes_reader, network_reader, output_dir)
 
 
 if __name__ == '__main__':
