@@ -29,7 +29,7 @@ setup(
     package_dir={'dijkstra_conda': 'dijkstra_conda'},
     include_package_data=True,
     install_requires=['pytest>=7.1.3', 'setuptools>=63.4.1', 'click>=8.1.3', 'bidict>=0.21.2', 'multidict>=6.0.2',
-                      'networkx>=2.8.6', 'pandas>=1.4.3', 'shapely>=1.8.4', 'pyshp>=2.3.1'],
+                      'networkx>=2.8.6', 'pandas>=1.4.3', 'shapely>=1.8.4', 'pyshp>=2.3.1', 'matplotlib<=3.5.3'],
     license='MIT',
     zip_safe=False,
     keywords='dijkstra_conda',
