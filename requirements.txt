@@ -16,3 +16,4 @@ multidict>=6.0.2
 networkx>=2.8.6
 pandas>=1.4.3
 shapely>=1.8.4
+matplotlib<=3.5.3

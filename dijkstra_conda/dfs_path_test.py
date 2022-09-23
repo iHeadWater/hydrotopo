@@ -410,8 +410,8 @@ def show_upstream_stations_graph(node_reader: Reader, network_reader: Reader, nu
     for list_str in set_up_no_dup:
         print(list_str.lstrip('[').rstrip(']'))  # 输出的都是字串
     nx.draw_networkx(upstream_graph, node_size=10)
-    plt.show()
     plt.savefig(os.path.join(output_path, 'upstream_graph_' + str(number) + '_cutoff_' + str(cutoff) + '.png'))
+    plt.show()
 
 
 def show_downstream_stations(node_reader: Reader, network_reader: Reader, number: int, outdated: bool,
