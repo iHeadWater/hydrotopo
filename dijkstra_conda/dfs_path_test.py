@@ -2,6 +2,7 @@ import os
 import sys
 
 import bidict as bd
+import click
 import matplotlib.pyplot as plt
 import multidict as md
 import networkx as nx
@@ -130,7 +131,7 @@ def tie_outside_node(node_reader: Reader, network_reader: Reader, outdated: bool
         source_point_line_dict = bd.bidict()
         nearest_point_line_dict = md.MultiDict()
         for x in range(0, len(node_reader)):
-            print("Tying nodes:" + str(x))
+            click.echo("Tying nodes:" + str(x))
             source_coord = tuple(node_reader.shape(x).points[0])
             nearest_line: LineString = line_min_dist(source_coord, network_reader)
             # 用以解决低质数据，下文while处若循环1000次后还连不上，就放弃
@@ -384,7 +385,7 @@ def write_path_file(node_reader: Reader, network_reader: Reader, output_path=os.
     """
     with open(os.path.join(output_path, "up_down_paths.txt"), mode='w+') as fp:
         for i in range(0, len(node_reader)):
-            print('Writing stream: ' + str(i))
+            click.echo('Writing stream: ' + str(i))
             set_up_no_dup = get_upstream_stations(node_reader, network_reader, i, True, 2147483647, output_path)[1]
             list_up_no_dup = list(set_up_no_dup)
             for str_path in list_up_no_dup:
@@ -408,7 +409,7 @@ def show_upstream_stations_graph(node_reader: Reader, network_reader: Reader, nu
     upstream_graph = get_upstream_stations_graph(node_reader, network_reader, number, outdated, cutoff, cache_dir, output_path)[1]
     set_up_no_dup = get_upstream_stations(node_reader, network_reader, number, outdated, cutoff, cache_dir, output_path)[1]
     for list_str in set_up_no_dup:
-        print(list_str.lstrip('[').rstrip(']'))  # 输出的都是字串
+        click.echo(list_str.lstrip('[').rstrip(']'))  # 输出的都是字串
     nx.draw_networkx(upstream_graph, node_size=10)
     plt.savefig(os.path.join(output_path, 'upstream_graph_' + str(number) + '_cutoff_' + str(cutoff) + '.png'))
     plt.show()
@@ -427,7 +428,7 @@ def show_downstream_stations(node_reader: Reader, network_reader: Reader, number
     cutoff: 同一条河上最多可以往下寻找几个水文站，默认为int.max（当然也可以指定一个很大的数），即不限数量
     """
     list_stations = get_downstream_stations(node_reader, network_reader, number, outdated, cutoff, cache_dir, output_path)
-    print(list_stations)
+    click.echo(list_stations)
 
 
 def upstream_node_on_mainstream(node_reader: Reader, network_reader: Reader, number_src, number_target, outdated: bool,
@@ -478,13 +479,13 @@ def upstream_node_on_mainstream(node_reader: Reader, network_reader: Reader, num
             for i in range(0, len(line_stations)):
                 line_stations[i] = line_stations[i].replace('"', '')
             if (nx.shortest_path_length(origin_graph_src_sub, origin_target_point, origin_source_point, weight='weight') <
-                nx.dag_longest_path_length(origin_graph_src_sub, weight='weight')) & (origin_target_point not in nx.dag_longest_path(
-                origin_graph_src_sub, weight='weight')):
-                print('In tributary: ' + str(line_stations))
+                nx.dag_longest_path_length(origin_graph_src_sub, weight='weight')) & (
+                    origin_target_point not in nx.dag_longest_path(origin_graph_src_sub, weight='weight')):
+                click.echo('In tributary: ' + str(line_stations))
                 break
             else:
                 cutoff = line_stations.index('sta' + str(number_target))
-                print('In Mainstream: ' + str(line_stations[cutoff:]))
+                click.echo('In Mainstream: ' + str(line_stations[cutoff:]))
                 break
     if in_basin is False:
-        print(str(number_target) + ' is not in upstream basin of ' + str(number_src))
+        click.echo(str(number_target) + ' is not in upstream basin of ' + str(number_src))
