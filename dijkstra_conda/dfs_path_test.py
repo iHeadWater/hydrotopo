@@ -444,8 +444,8 @@ def upstream_node_on_mainstream(node_reader: Reader, network_reader: Reader, num
     number_target: 待判断的站点号
     """
     # number_src是要生成子图的原点号，number_target是要判断干支流的点号
-    source_point = tuple(node_reader.shape(number_src).points[0])
-    target_point = tuple(node_reader.shape(number_target).points[0])
+    source_point = tuple(node_reader.shape(int(number_src)).points[0])
+    target_point = tuple(node_reader.shape(int(number_target)).points[0])
     if (outdated is False) & (os.path.exists(os.path.join(cache_dir, 'nearest_line_project_points.csv')) & os.path.exists(
             os.path.join(cache_dir, 'source_project_points.csv'))):
         nearest_line_project_df = pd.read_csv(os.path.join(cache_dir, 'nearest_line_project_points.csv'))
