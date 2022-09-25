@@ -411,7 +411,6 @@ def show_upstream_stations_graph(node_reader: Reader, network_reader: Reader, nu
         click.echo(list_str.lstrip('[').rstrip(']'))  # 输出的都是字串
     nx.draw_networkx(upstream_graph, node_size=10)
     plt.savefig(os.path.join(output_path, 'upstream_graph_' + str(number) + '_cutoff_' + str(cutoff) + '.png'))
-    plt.show()
 
 
 def show_downstream_stations(node_reader: Reader, network_reader: Reader, number: int, outdated: bool,
@@ -430,7 +429,7 @@ def show_downstream_stations(node_reader: Reader, network_reader: Reader, number
     click.echo(list_stations)
 
 
-def upstream_node_on_mainstream(node_reader: Reader, network_reader: Reader, number_src: int, number_target: int, outdated: bool,
+def upstream_node_on_mainstream(node_reader: Reader, network_reader: Reader, number_src, number_target, outdated: bool,
                                 cache_dir=os.curdir, output_dir=os.curdir):
     """
     以number_src为当前站点，判断number_target所代表的站点是否存在于当前站点上游流域的干支流中，存在三种结果：
@@ -444,8 +443,8 @@ def upstream_node_on_mainstream(node_reader: Reader, network_reader: Reader, num
     number_target: 待判断的站点号
     """
     # number_src是要生成子图的原点号，number_target是要判断干支流的点号
-    source_point = tuple(node_reader.shape(number_src).points[0])
-    target_point = tuple(node_reader.shape(number_target).points[0])
+    source_point = tuple(node_reader.shape(int(number_src)).points[0])
+    target_point = tuple(node_reader.shape(int(number_target)).points[0])
     if (outdated is False) & (os.path.exists(os.path.join(cache_dir, 'nearest_line_project_points.csv')) & os.path.exists(
             os.path.join(cache_dir, 'source_project_points.csv'))):
         nearest_line_project_df = pd.read_csv(os.path.join(cache_dir, 'nearest_line_project_points.csv'))
