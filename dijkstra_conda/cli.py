@@ -26,11 +26,11 @@ def main(outdated, nodes_path, river_path, cur_sta, up_sta, cutoff, upstream, do
         network_reader = Reader(input_network_file_shp)
         write_path_file(nodes_reader, network_reader, output_dir)
     if upstream is True:
-        show_upstream_stations_graph(network_reader, nodes_reader, cur_sta, outdated, cutoff, cache_dir, output_dir)
+        show_upstream_stations_graph(network_reader, nodes_reader, cur_sta, outdated, cache_dir, output_dir, cutoff)
     elif downstream is True:
-        show_downstream_stations(nodes_reader, network_reader, cur_sta, outdated, cutoff, cache_dir, output_dir)
+        show_downstream_stations(nodes_reader, network_reader, cur_sta, outdated, cache_dir, output_dir, cutoff)
     if up_sta is not None:
-        upstream_node_on_mainstream(nodes_reader, network_reader, cur_sta, up_sta, cache_dir)
+        upstream_node_on_mainstream(nodes_reader, network_reader, cur_sta, up_sta, outdated, cache_dir)
 
 
 if __name__ == '__main__':

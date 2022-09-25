@@ -131,7 +131,6 @@ def tie_outside_node(node_reader: Reader, network_reader: Reader, outdated: bool
         source_point_line_dict = bd.bidict()
         nearest_point_line_dict = md.MultiDict()
         for x in range(0, len(node_reader)):
-            click.echo("Tying nodes:" + str(x))
             source_coord = tuple(node_reader.shape(x).points[0])
             nearest_line: LineString = line_min_dist(source_coord, network_reader)
             # 用以解决低质数据，下文while处若循环1000次后还连不上，就放弃
