@@ -394,7 +394,7 @@ def write_path_file(node_reader: Reader, network_reader: Reader, output_path=os.
 
 
 def show_upstream_stations_graph(node_reader: Reader, network_reader: Reader, number: int, outdated: bool,
-                                 cache_dir, output_path, cutoff: int = 2147483647):
+                                 cache_dir=os.curdir, output_path=os.curdir, cutoff: int = 2147483647):
     """
     显示当前站点的上游站点图
 
@@ -415,7 +415,7 @@ def show_upstream_stations_graph(node_reader: Reader, network_reader: Reader, nu
 
 
 def show_downstream_stations(node_reader: Reader, network_reader: Reader, number: int, outdated: bool,
-                             cache_dir, output_path, cutoff: int = 2147483647):
+                             cache_dir=os.curdir, output_path=os.curdir, cutoff: int = 2147483647):
     """
     显示当前站点的下游站点列表
 
@@ -431,7 +431,7 @@ def show_downstream_stations(node_reader: Reader, network_reader: Reader, number
 
 
 def upstream_node_on_mainstream(node_reader: Reader, network_reader: Reader, number_src, number_target, outdated: bool,
-                                cache_dir):
+                                cache_dir=os.curdir):
     """
     以number_src为当前站点，判断number_target所代表的站点是否存在于当前站点上游流域的干支流中，存在三种结果：
     在支流中（In tributary），在干流中（In Mainstream），不在上游流域中
@@ -444,8 +444,8 @@ def upstream_node_on_mainstream(node_reader: Reader, network_reader: Reader, num
     number_target: 待判断的站点号
     """
     # number_src是要生成子图的原点号，number_target是要判断干支流的点号
-    source_point = tuple(node_reader.shape(int(number_src)).points[0])
-    target_point = tuple(node_reader.shape(int(number_target)).points[0])
+    source_point = tuple(node_reader.shape(number_src).points[0])
+    target_point = tuple(node_reader.shape(number_target).points[0])
     if (outdated is False) & (os.path.exists(os.path.join(cache_dir, 'nearest_line_project_points.csv')) & os.path.exists(
             os.path.join(cache_dir, 'source_project_points.csv'))):
         nearest_line_project_df = pd.read_csv(os.path.join(cache_dir, 'nearest_line_project_points.csv'))
