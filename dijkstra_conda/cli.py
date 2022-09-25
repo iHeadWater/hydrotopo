@@ -30,7 +30,7 @@ def main(outdated, nodes_path, river_path, cur_sta, up_sta, cutoff, upstream, do
     elif downstream is True:
         show_downstream_stations(nodes_reader, network_reader, cur_sta, outdated, cache_dir, output_dir, cutoff)
     if up_sta is not None:
-        upstream_node_on_mainstream(nodes_reader, network_reader, cur_sta, up_sta, outdated, cache_dir)
+        upstream_node_on_mainstream(nodes_reader, network_reader, cur_sta, up_sta, outdated, cache_dir, output_dir)
 
 
 if __name__ == '__main__':
