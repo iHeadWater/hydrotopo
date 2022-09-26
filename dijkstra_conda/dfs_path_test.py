@@ -242,7 +242,7 @@ def get_upstream_stations(node_reader: Reader, network_reader: Reader,
     stations_up_list = []
     stations_graph = build_graph(node_reader, network_reader, outdated, cache_dir, output_path)
     source_target_dict = tie_outside_node(node_reader, network_reader, outdated, cache_dir, output_path)[0]
-    source_node_coord = tuple(node_reader.shape(station_index).points[0])
+    source_node_coord = tuple(node_reader.shape(int(station_index)).points[0])
     target_node_coord = source_target_dict.get(source_node_coord)
     upstream_graph_path = "upstream_graph_" + str(station_index) + "_cutoff_" + str(cutoff) + ".edgelist"
     if os.path.exists(os.path.join(cache_dir, upstream_graph_path)):
@@ -267,7 +267,7 @@ def get_upstream_stations(node_reader: Reader, network_reader: Reader,
                                               create_using=nx.DiGraph)
     else:
         source_target_dict = tie_outside_node(node_reader, network_reader, outdated, cache_dir, output_path)[0]
-        source_node_coord = tuple(node_reader.shape(station_index).points[0])
+        source_node_coord = tuple(node_reader.shape(int(station_index)).points[0])
         target_node_coord = source_target_dict.get(source_node_coord)
         upstream_graph = stations_graph.subgraph(nx.ancestors(stations_graph, target_node_coord) | {target_node_coord}).copy()
         if cutoff != 2147483647:
@@ -317,7 +317,7 @@ def get_downstream_stations(node_reader: Reader, network_reader: Reader,
     else:
         stations_graph = build_graph(node_reader, network_reader, outdated, cache_dir, output_path)
         source_target_dict = tie_outside_node(node_reader, network_reader, outdated, cache_dir, output_path)[0]
-        source_node_coord = tuple(node_reader.shape(station_index).points[0])
+        source_node_coord = tuple(node_reader.shape(int(station_index)).points[0])
         target_node_coord = source_target_dict.get(source_node_coord)
         dfs_tree_path = nx.dfs_tree(stations_graph, target_node_coord)
         for coord in dfs_tree_path:
@@ -359,7 +359,7 @@ def get_upstream_stations_graph(node_reader: Reader, network_reader: Reader, num
             origin_graph.add_edge(src, dest, weight=shapely_line.length)
     new_graph = nx.DiGraph()
     source_target_dict = tie_outside_node(node_reader, network_reader, outdated, cache_dir, output_path)[0]
-    source_node_coord = tuple(node_reader.shape(number).points[0])
+    source_node_coord = tuple(node_reader.shape(int(number)).points[0])
     target_node_coord = source_target_dict.get(source_node_coord)
     for coord in upstream_graph.nodes:
         if upstream_graph.in_degree(coord) == 0:
