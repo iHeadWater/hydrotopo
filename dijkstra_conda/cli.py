@@ -15,7 +15,7 @@ from .dfs_path_test import show_upstream_stations_graph, show_downstream_station
 @click.option('--downstream', is_flag=False, help='output list of downstream stations of current station')
 @click.option('--output_dir', help='when outdated is true,choose directory which you want to put your cache file')
 @click.option('--cache_dir', help='when outdated if false,choose directory where put cache file')
-def main(outdated, nodes_path, river_path, cur_sta, up_sta, cutoff, upstream, downstream, cache_dir, output_dir):
+def main(outdated, nodes_path, river_path, cur_sta, up_sta, cutoff, upstream, downstream, cache_dir=os.curdir, output_dir=os.curdir):
     if (outdated is False) & (cache_dir is not None):
         nodes_reader = None
         network_reader = None
