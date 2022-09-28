@@ -219,7 +219,7 @@ def build_graph(node_reader: Reader, network_reader: Reader, outdated: bool, cac
             else:
                 src = line.points[0]
                 dest = line.points[-1]
-                network_graph.add_edge(src, dest)
+                network_graph.add_edge(tuple(src), tuple(dest))
         nx.write_edgelist(network_graph, os.path.join(output_path, 'network_graph.edgelist'), delimiter='|')
     return network_graph
 
