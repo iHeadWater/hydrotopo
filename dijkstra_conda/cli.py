@@ -10,7 +10,7 @@ from .dfs_path_test import show_upstream_stations_graph, show_downstream_station
 @click.option('--river_path', help='path of river vector shape file')
 @click.option('--cur_sta', help='number of current station')
 @click.option('--up_sta', help='number of station which will be judge in mainstream or tributary in upstream watershed of current station')
-@click.option('--cutoff', help='amount of stations which user want to limit')
+@click.option('--cutoff', default=2147483647, help='amount of stations which user want to limit')
 @click.option('--upstream', default=False, help='output upstream stations graph of current station')
 @click.option('--downstream', default=False, help='output list of downstream stations of current station')
 @click.option('--output_dir', default=os.curdir, help='when outdated is true,choose directory which you want to put your cache file')
@@ -26,7 +26,7 @@ def main(outdated, nodes_path, river_path, cur_sta, up_sta, cutoff, upstream, do
         network_reader = Reader(input_network_file_shp)
         write_path_file(nodes_reader, network_reader, output_dir)
     if upstream is True:
-        show_upstream_stations_graph(network_reader, nodes_reader, cur_sta, outdated, cache_dir, output_dir, cutoff)
+        show_upstream_stations_graph(nodes_reader, network_reader, cur_sta, outdated, cache_dir, output_dir, cutoff)
     elif downstream is True:
         show_downstream_stations(nodes_reader, network_reader, cur_sta, outdated, cache_dir, output_dir, cutoff)
     if up_sta is not None:
