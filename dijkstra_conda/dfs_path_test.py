@@ -409,7 +409,7 @@ def show_upstream_stations_graph(node_reader: Reader, network_reader: Reader, nu
     set_up_no_dup = get_upstream_stations(node_reader, network_reader, number, outdated, cutoff, cache_dir, output_path)[1]
     for list_str in set_up_no_dup:
         click.echo(list_str.lstrip('[').rstrip(']'))  # 输出的都是字串
-    nx.draw_networkx(upstream_graph, node_size=10)
+    nx.draw_networkx(upstream_graph, node_size=10, with_labels=False)
     plt.savefig(os.path.join(output_path, 'upstream_graph_' + str(number) + '_cutoff_' + str(cutoff) + '.png'))
 
 
