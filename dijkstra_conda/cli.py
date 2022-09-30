@@ -17,8 +17,10 @@ from .dfs_path_test import show_upstream_stations_graph, show_downstream_station
 @click.option('--cache_dir', default=os.curdir, help='when outdated if false,choose directory where put cache file')
 def main(outdated, nodes_path, river_path, cur_sta, up_sta, cutoff, upstream, downstream, cache_dir, output_dir):
     if (outdated is False) & (cache_dir is not None):
-        nodes_reader = None
-        network_reader = None
+        input_network_file_shp = os.path.abspath(river_path)
+        input_node_file_shp = os.path.relpath(nodes_path)
+        nodes_reader = Reader(input_node_file_shp)
+        network_reader = Reader(input_network_file_shp)
     else:
         input_network_file_shp = os.path.abspath(river_path)
         input_node_file_shp = os.path.relpath(nodes_path)
