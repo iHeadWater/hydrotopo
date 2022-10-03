@@ -95,7 +95,7 @@ def get_extrapolated_line(source_coord, coord, extrapolate_ratio):
     return LineString([source, c])
 
 
-def tie_outside_node(node_reader: Reader, network_reader: Reader, outdated: bool, cache_dir=os.curdir, output_path=os.curdir):
+def tie_outside_node(node_reader: Reader, network_reader: Reader, outdated: bool, cache_dir, output_path):
     """
     值得注意，由于tie_outside_node操作很费时，故工程中如有source_project_points.csv文件和nearest_line_project_points.csv文件，
     程序会优先从这两个文件中读取数据，所以如要从头生成，必须删除这两个文件
@@ -184,7 +184,7 @@ def tie_outside_node(node_reader: Reader, network_reader: Reader, outdated: bool
     return source_point_line_dict, nearest_point_line_dict
 
 
-def build_graph(node_reader: Reader, network_reader: Reader, outdated: bool, cache_dir=os.curdir, output_path=os.curdir):
+def build_graph(node_reader: Reader, network_reader: Reader, outdated: bool, cache_dir, output_path):
     """
     参数
     ----------
@@ -225,7 +225,7 @@ def build_graph(node_reader: Reader, network_reader: Reader, outdated: bool, cac
 
 
 def get_upstream_stations(node_reader: Reader, network_reader: Reader,
-                          station_index: int, outdated: bool, cutoff: int = 2147483647, cache_dir=os.curdir, output_path=os.curdir):
+                          station_index: int, outdated: bool, cache_dir, output_path, cutoff: int = 2147483647):
     """
     参数
     ----------
@@ -290,7 +290,7 @@ def get_upstream_stations(node_reader: Reader, network_reader: Reader,
 
 
 def get_downstream_stations(node_reader: Reader, network_reader: Reader,
-                            station_index: int, outdated: bool, cutoff: int = 2147483647, cache_dir=os.curdir, output_path=os.curdir):
+                            station_index: int, outdated: bool, cache_dir, output_path, cutoff: int = 2147483647):
     """
     参数
     ----------
@@ -330,7 +330,7 @@ def get_downstream_stations(node_reader: Reader, network_reader: Reader,
 
 
 def get_upstream_stations_graph(node_reader: Reader, network_reader: Reader, number: int, outdated: bool,
-                                cutoff: int = 2147483647, cache_dir=os.curdir, output_path=os.curdir):
+                                cache_dir, output_path, cutoff: int = 2147483647):
     """
     参数
     ----------
@@ -345,7 +345,7 @@ def get_upstream_stations_graph(node_reader: Reader, network_reader: Reader, num
     new_graph: 当前站点及上游所有站点构成的子图
     origin_graph: 根据河源唯远判断干支流的原始河流抽象图
     """
-    upstream_graph = get_upstream_stations(node_reader, network_reader, number, outdated, cutoff, cache_dir, output_path)[0]
+    upstream_graph = get_upstream_stations(node_reader, network_reader, number, outdated, cache_dir, output_path, cutoff)[0]
     if (outdated is False) & os.path.exists(os.path.join(cache_dir, 'origin_graph.edgelist')):
         origin_graph = nx.read_edgelist(os.path.join(cache_dir, 'origin_graph.edgelist'), delimiter='|',
                                         nodetype=lambda t: tuple([float(v) for v in str(t).strip("()").split(",")]),
@@ -373,7 +373,7 @@ def get_upstream_stations_graph(node_reader: Reader, network_reader: Reader, num
     return upstream_graph, new_graph, origin_graph
 
 
-def write_path_file(node_reader: Reader, network_reader: Reader, output_path=os.curdir):
+def write_path_file(node_reader: Reader, network_reader: Reader, cache_dir, output_path):
     """
     将上下游信息分行保存在txt文件中以便下次读取，upstream: 代表上游，downstream: 代表下游
 
@@ -385,16 +385,16 @@ def write_path_file(node_reader: Reader, network_reader: Reader, output_path=os.
     with open(os.path.join(output_path, "up_down_paths.txt"), mode='w+') as fp:
         for i in range(0, len(node_reader)):
             click.echo('Writing stream: ' + str(i))
-            set_up_no_dup = get_upstream_stations(node_reader, network_reader, i, True, 2147483647, output_path)[1]
+            set_up_no_dup = get_upstream_stations(node_reader, network_reader, i, True, cache_dir, output_path)[1]
             list_up_no_dup = list(set_up_no_dup)
             for str_path in list_up_no_dup:
                 fp.writelines("upstream: " + str_path.lstrip('[').rstrip(']') + "\n")
-            list_down = get_downstream_stations(node_reader, network_reader, i, True)
+            list_down = get_downstream_stations(node_reader, network_reader, i, True, cache_dir, output_path)
             fp.writelines("downstream: " + str(list_down).lstrip('[').rstrip(']') + "\n")
 
 
 def show_upstream_stations_graph(node_reader: Reader, network_reader: Reader, number: int, outdated: bool,
-                                 cache_dir=os.curdir, output_path=os.curdir, cutoff: int = 2147483647):
+                                 cache_dir, output_path, cutoff: int = 2147483647):
     """
     显示当前站点的上游站点图
 
@@ -405,8 +405,8 @@ def show_upstream_stations_graph(node_reader: Reader, network_reader: Reader, nu
     number: 站点图层中的标号，本例中从0开始，针对不同数据，可以从图层属性表中行号辅助判断
     cutoff: 同一条河上最多可以上溯几个水文站，默认为int.max（当然也可以指定一个很大的数），即不限数量
     """
-    upstream_graph = get_upstream_stations_graph(node_reader, network_reader, number, outdated, cutoff, cache_dir, output_path)[1]
-    set_up_no_dup = get_upstream_stations(node_reader, network_reader, number, outdated, cutoff, cache_dir, output_path)[1]
+    upstream_graph = get_upstream_stations_graph(node_reader, network_reader, number, outdated, cache_dir, output_path, cutoff)[1]
+    set_up_no_dup = get_upstream_stations(node_reader, network_reader, number, outdated, cache_dir, output_path, cutoff)[1]
     for list_str in set_up_no_dup:
         click.echo(list_str.lstrip('[').rstrip(']'))  # 输出的都是字串
     nx.draw_networkx(upstream_graph, node_size=10, with_labels=False)
@@ -414,7 +414,7 @@ def show_upstream_stations_graph(node_reader: Reader, network_reader: Reader, nu
 
 
 def show_downstream_stations(node_reader: Reader, network_reader: Reader, number: int, outdated: bool,
-                             cache_dir=os.curdir, output_path=os.curdir, cutoff: int = 2147483647):
+                             cache_dir, output_path, cutoff: int = 2147483647):
     """
     显示当前站点的下游站点列表
 
@@ -425,12 +425,12 @@ def show_downstream_stations(node_reader: Reader, network_reader: Reader, number
     number: 站点图层中的标号，本例中从0开始，针对不同数据，可以从图层属性表中行号辅助判断
     cutoff: 同一条河上最多可以往下寻找几个水文站，默认为int.max（当然也可以指定一个很大的数），即不限数量
     """
-    list_stations = get_downstream_stations(node_reader, network_reader, number, outdated, cutoff, cache_dir, output_path)
+    list_stations = get_downstream_stations(node_reader, network_reader, number, outdated, cache_dir, output_path, cutoff)
     click.echo(list_stations)
 
 
 def upstream_node_on_mainstream(node_reader: Reader, network_reader: Reader, number_src, number_target, outdated: bool,
-                                cache_dir=os.curdir, output_dir=os.curdir):
+                                cache_dir, output_dir):
     """
     以number_src为当前站点，判断number_target所代表的站点是否存在于当前站点上游流域的干支流中，存在三种结果：
     在支流中（In tributary），在干流中（In Mainstream），不在上游流域中
@@ -460,12 +460,12 @@ def upstream_node_on_mainstream(node_reader: Reader, network_reader: Reader, num
     else:
         nearest_target_line: LineString = line_min_dist(target_point, network_reader)
         nearest_source_line: LineString = line_min_dist(source_point, network_reader)
-    origin_graph = get_upstream_stations_graph(node_reader, network_reader, number_src, outdated)[2]
+    origin_graph = get_upstream_stations_graph(node_reader, network_reader, number_src, outdated, cache_dir, output_dir), [2]
     origin_target_point = nearest_target_line.coords[0]
     origin_source_point = nearest_source_line.coords[-1]
     origin_graph_src_sub: DiGraph = nx.subgraph(origin_graph, nx.ancestors(origin_graph, origin_source_point) | {
         origin_source_point}).copy()
-    set_up_no_dup = get_upstream_stations(node_reader, network_reader, number_src, outdated, cutoff=10000)[1]
+    set_up_no_dup = get_upstream_stations(node_reader, network_reader, number_src, outdated, cache_dir, output_dir)[1]
     in_basin = False
     for upstream_str in set_up_no_dup:
         in_basin = in_basin | ('sta' + str(number_target) in upstream_str)

@@ -26,7 +26,7 @@ def main(outdated, nodes_path, river_path, cur_sta, up_sta, cutoff, upstream, do
         input_node_file_shp = os.path.relpath(nodes_path)
         nodes_reader = Reader(input_node_file_shp)
         network_reader = Reader(input_network_file_shp)
-        write_path_file(nodes_reader, network_reader, output_dir)
+        write_path_file(nodes_reader, network_reader, cache_dir, output_dir)
     if upstream is True:
         show_upstream_stations_graph(nodes_reader, network_reader, cur_sta, outdated, cache_dir, output_dir, cutoff)
     elif downstream is True:
