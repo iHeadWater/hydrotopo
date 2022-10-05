@@ -460,7 +460,7 @@ def upstream_node_on_mainstream(node_reader: Reader, network_reader: Reader, num
     else:
         nearest_target_line: LineString = line_min_dist(target_point, network_reader)
         nearest_source_line: LineString = line_min_dist(source_point, network_reader)
-    origin_graph = get_upstream_stations_graph(node_reader, network_reader, number_src, outdated, cache_dir, output_dir), [2]
+    origin_graph = get_upstream_stations_graph(node_reader, network_reader, number_src, outdated, cache_dir, output_dir)[2]
     origin_target_point = nearest_target_line.coords[0]
     origin_source_point = nearest_source_line.coords[-1]
     origin_graph_src_sub: DiGraph = nx.subgraph(origin_graph, nx.ancestors(origin_graph, origin_source_point) | {
