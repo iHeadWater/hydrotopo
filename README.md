@@ -2,34 +2,50 @@
 
 一种从模拟站点和河网图层文件（SHP）中判断站点上下游关系的简单办法。
 
-**注意！由于matplotlib自身问题，本库尚未真正完成搭建！在作者删掉此行文件之前，请勿使用本库代码！**
 
 如何运行
 ------
-本工具使用相对路径标记文件位置，主要代码位于dijkstra-conda/dfs_path_test.py文件中，所用shp文件位于dijkstra-conda/test_data文件夹下:
-```
-INPUT_NETWORK_FILE_SHP = os.path.relpath("test_data/near_changchun_cut.shp")
-INPUT_NODE_FILE_SHP = os.path.relpath("test_data/near_changchun_dots.shp")
-```
-用户使用时需要将河网矢量图层和站点图层在GIS软件中转换为**单部件**后，将对应的shp、shx、prj、dbf文件放到test_data中。
+首先打开命令行，运行指令`pip install dijkstra-conda==51302894`，等待安装完毕。
 
-如果是第一次针对某批站点和河网生成上下游数据，需要将outdated项改为True，然后将INPUT_NETWORK_FILE_SHP对应路径改为河网线图层所在**相对**路径，INPUT_NODE_FILE_SHP对应路径改为站点图层所在**相对**路径。（如果感觉难以理解，只需要将两个图层8个文件拖到dfs_path_test.py所在文件夹下，然后将路径改为相应文件名即可）
+下载此工具后，运行指令`calcstream --help`（如果安装dijkstra-conda包时你刚好处于一个conda环境下，需要先激活该conda环境，指令才能正常运行）查看所有指令配置：
 
-文件结尾有main方法，示例如下：
 ```
-index = 4  #指定当前站点为4号站点
-show_upstream_stations_graph(gpd_nodes_dataframe, gpd_network_dataframe, index, 5) #指定当前站点在河网中，第4个参数指：沿站点所在河流上溯最多5个站点，输出这部分上游河网
-print('____________________________________________________________________________')
-print(upstream_node_on_mainstream(gpd_nodes_dataframe, gpd_network_dataframe, index, 28)) #检测28号站点位于4号站点上游流域的干流还是支流中，或者不在上游流域
-print('____________________________________________________________________________')
-show_downstream_stations(gpd_nodes_dataframe, gpd_network_dataframe, index) #检测当前站点的下游站点（没有第4个参数，代表数量不限）
-if outdated is True:
-    write_path_file(gpd_nodes_dataframe, gpd_network_dataframe) #若将outdated设为True，就生成所有站点的上下游关系
+Options:
+  --outdated TEXT    decide regenerate cache files or not  //标记数据是否过期，不设定默认为False，设定为True后，程序将重新计算站点上下游关系，如果是首次运行没见过的河网和站点，就需要设置成True
+  --nodes_path TEXT  path of nodes shape file  //存储站点shapefile文件的绝对路径，如C:\Users\UserName\Desktop\test_nodes.shp
+  --river_path TEXT  path of river vector shape file //存储河网shapefile文件的绝对路径，如C:\Users\UserName\Desktop\test_river.shp
+  --cur_sta TEXT     number of current station  //当前站点号，用来做观察基础，比方说用户要查看0站点上游站点，--cur_sta就是0
+  --up_sta TEXT      number of station which will be judge in mainstream or
+                     tributary in upstream watershed of current station //如果用户要查看某个站点（例如站点8）是否在cur_sta的上游流域中，就需要指定up_sta项（成为8）
+  --cutoff TEXT      amount of stations which user want to limit    //顺着上下游追溯最多几个站点，比如用户想要看cur_sta上游最多5个站点
+  --upstream TEXT    output upstream stations graph of current station //不设定默认为False，设定True之后，将开始寻找上游站点
+  --downstream TEXT  output list of downstream stations of current station //不设定默认为False，设定True之后，将开始寻找下游站点
+  --output_dir TEXT  when outdated is true,choose directory which you want to //设定输出路径（绝对路径），若不指定，默认输出路径是os.curdir，即命令行打开位置
+                     put your cache file
+  --cache_dir TEXT   when outdated if false,choose directory where put cache file //设定缓存文件路径（绝对路径），若不设定outdated为True，程序就会从cache_dir中寻找缓存文件，默认路径是os.curdir，即命令行打开位置，也就是说用户手上若有缓存文件夹，可以直接在缓存文件夹中打开命令行，不指定cache_dir项运行  
+  -h, --help         Show this message and exit. //显示帮助
 ```
 
-之后就可以直接点击运行，等待进程完成，更详细的情况可见dfs_path_test.py里的文档注释
+示例指令1：
 
-或者这篇文档：https://station-simulator.readthedocs.io/zh_CN/latest/reference/dfs_path_test.html
+`calcstream --nodes_path C:\Users\UserName\Desktop\test_nodes.shp --river_path C:\Users\UserName\Desktop\test_river.shp --cur_sta 0 --upstream True --outdated True --cutoff 6`
+
+意义：不设缓存文件，从0号站点开始，重新计算它的上游站点，最多向上追溯6个站点
+
+输出结果：
+
+![图片](https://user-images.githubusercontent.com/23413915/194866111-2676da4c-94c5-4550-9a37-996ad4031f54.png)
+
+示例指令2：
+
+`calcstream --nodes_path C:\Users\UserName\Desktop\test_nodes.shp --river_path C:\Users\UserName\Desktop\test_river.shp --cur_sta 0 --up_sta 10 --cache_dir C:\Users\UserName\cache-dir`
+
+意义：从C:\Users\UserName\cache-dir文件夹读取缓存文件，查看10号站点是否在0站点上游流域中
+
+输出结果：
+
+![图片](https://user-images.githubusercontent.com/23413915/194866975-6179c909-25cc-4a63-b2c8-46f913b9622a.png)
+
 
 如何使用缓存文件
 -----
