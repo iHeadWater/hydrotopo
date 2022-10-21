@@ -141,13 +141,19 @@ def tie_outside_node(node_reader: Reader, network_reader: Reader, outdated: bool
             point_src = nearest_line.coords[0]
             point_dst = nearest_line.coords[-1]
             if (nearest_p[0] == point_src[0]) & (nearest_p[1] == point_src[1]):
-                gradient = (point_dst[1] - point_src[1]) / (point_dst[0] - point_src[0])
-                point_src_rand = (point_src[0] + 1e-6, point_src[1] + gradient * 1e-6)
+                if point_dst[0] == point_src[0]:
+                    point_src_rand = (point_src[0], point_src[1] + 1e-6)
+                else:
+                    gradient = (point_dst[1] - point_src[1]) / (point_dst[0] - point_src[0])
+                    point_src_rand = (point_src[0] + 1e-6, point_src[1] + gradient * 1e-6)
                 source_point_line_dict.put(source_coord, point_src_rand)
                 nearest_point_line_dict.add(nearest_line.wkt, point_src_rand)
             elif (nearest_p[0] == point_dst[0]) & (nearest_p[1] == point_dst[1]):
-                gradient = (point_dst[1] - point_src[1]) / (point_dst[0] - point_src[0])
-                point_dst_rand = (point_dst[0] + 1e-6, point_dst[1] + gradient * 1e-6)
+                if point_dst[0] == point_src[0]:
+                    point_dst_rand = (point_dst[0], point_dst[1] + 1e-6)
+                else:
+                    gradient = (point_dst[1] - point_src[1]) / (point_dst[0] - point_src[0])
+                    point_dst_rand = (point_dst[0] + 1e-6, point_dst[1] + gradient * 1e-6)
                 source_point_line_dict.put(source_coord, point_dst_rand)
                 nearest_point_line_dict.add(nearest_line.wkt, point_dst_rand)
             else:
