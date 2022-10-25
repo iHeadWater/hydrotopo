@@ -20,6 +20,7 @@ from shapefile import Reader, Shape
 """
 
 
+# https://github.com/GeospatialPython/pyshp/issues/249
 def shape_type_to_wkt(shape: Shape):
     geo_shpfile = shape.__geo_interface__
     geo_class = geo_shpfile['type'].upper()
@@ -147,7 +148,7 @@ def tie_outside_node(node_reader: Reader, network_reader: Reader, outdated: bool
                     gradient = (point_dst[1] - point_src[1]) / (point_dst[0] - point_src[0])
                     point_src_rand = (point_src[0] + 1e-6, point_src[1] + gradient * 1e-6)
                 source_point_line_dict.put(source_coord, point_src_rand)
-                nearest_point_line_dict.add(nearest_line.wkt, point_src_rand)
+                nearest_point_line_dict.add(shape_type_to_wkt(loads(nearest_line.wkt)), point_src_rand)
             elif (nearest_p[0] == point_dst[0]) & (nearest_p[1] == point_dst[1]):
                 if point_dst[0] == point_src[0]:
                     point_dst_rand = (point_dst[0], point_dst[1] + 1e-6)
@@ -155,7 +156,7 @@ def tie_outside_node(node_reader: Reader, network_reader: Reader, outdated: bool
                     gradient = (point_dst[1] - point_src[1]) / (point_dst[0] - point_src[0])
                     point_dst_rand = (point_dst[0] + 1e-6, point_dst[1] + gradient * 1e-6)
                 source_point_line_dict.put(source_coord, point_dst_rand)
-                nearest_point_line_dict.add(nearest_line.wkt, point_dst_rand)
+                nearest_point_line_dict.add(shape_type_to_wkt(loads(nearest_line.wkt)), point_dst_rand)
             else:
                 join_line = LineString([source_coord, nearest_p])
                 splits_edges_coll: GeometryCollection = geometry.GeometryCollection()
@@ -181,7 +182,7 @@ def tie_outside_node(node_reader: Reader, network_reader: Reader, outdated: bool
                     nearest_point_exact = nearest_p
                     nearest_point_exact = (nearest_point_exact[0], nearest_point_exact[1])
                 source_point_line_dict.put(source_coord, nearest_point_exact)
-                nearest_point_line_dict.add(nearest_line.wkt, nearest_point_exact)
+                nearest_point_line_dict.add(shape_type_to_wkt(loads(nearest_line.wkt)), nearest_point_exact)
         source_point_line_frame = pd.DataFrame({'source': source_point_line_dict.keys(), 'point': source_point_line_dict.values()})
         nearest_point_line_frame = pd.DataFrame({'nearest_line_wkt': nearest_point_line_dict.keys(),
                                                  'nearest_point': nearest_point_line_dict.values()})
