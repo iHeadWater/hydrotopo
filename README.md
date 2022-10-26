@@ -5,7 +5,7 @@
 
 如何运行
 ------
-首先打开命令行，运行指令`pip install dijkstra-conda==51302894`，等待安装完毕。
+首先打开命令行，运行指令`pip install dijkstra-conda==67012598`，等待安装完毕。
 
 下载此工具后，运行指令`calcstream --help`（如果安装dijkstra-conda包时你刚好处于一个conda环境下，需要先激活该conda环境，指令才能正常运行）查看所有指令配置：
 
