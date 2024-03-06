@@ -1,5 +1,3 @@
-from os.path import relpath
-
 import geopandas as gpd
 import igraph as ig
 import numpy as np
@@ -8,7 +6,6 @@ from geopandas import GeoDataFrame
 from shapely import STRtree, MultiLineString, intersection
 from shapely.geometry import Point, LineString
 from shapely.ops import split, nearest_points
-import pyogrio # noqa:401
 
 
 def get_extrapolated_line(source_coord, coord, extrapolate_ratio):
