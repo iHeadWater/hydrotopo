@@ -5,13 +5,10 @@ import igraph as ig
 import numpy as np
 import shapely
 from geopandas import GeoDataFrame
-from numpy import ndarray
 from shapely import STRtree, MultiLineString, intersection
 from shapely.geometry import Point, LineString
 from shapely.ops import split, nearest_points
-
-gpd_df_node = gpd.read_file(relpath('test_data/near_changchun_dots.shp'), engine='pyogrio')
-gpd_df_network = gpd.read_file(relpath('test_data/near_changchun_cut.shp'), engine='pyogrio')
+import pyogrio # noqa:401
 
 
 def get_extrapolated_line(source_coord, coord, extrapolate_ratio):
@@ -87,12 +84,11 @@ def sure_nearest_point(source_coord: Point, origin_line: LineString):
     return nearest_point
 
 
-def build_graph(geom_array: ndarray):
+def build_graph(geom_array: np.ndarray):
     geom_tree = STRtree(geom_array)
     left, right = geom_tree.query(geom_array, predicate='intersects')
     pairs = np.array([left[left != right], right[left != right]]).T
-    directed_pairs = np.zeros(shape=2 * len(pairs), dtype=int)
-    directed_pairs[directed_pairs == 0] = -1
+    directed_pairs = np.full(2 * len(pairs), -1, dtype=int)
     # 无向图要修正成有向图
     for i in np.arange(0, len(pairs), 1):
         end0 = geom_array[pairs[i][0]].coords[-1]
@@ -136,7 +132,7 @@ def find_edge_nodes(gpd_nodes_df, gpd_network_df, station_index: int, switch='up
             sta_lists.append(sta_list[:cutoff])
     else:
         sta_lists = []
-    return np.unique(np.array(sta_lists))
+    return np.unique(np.array(sta_lists, dtype=object))
 
 
 def calc_distance(gpd_nodes_df, gpd_network_df, start: int, end: int):
@@ -158,20 +154,24 @@ def calc_distance(gpd_nodes_df, gpd_network_df, start: int, end: int):
     return len_list
 
 
-def test_upper_nodes():
-    print(find_edge_nodes(gpd_df_node, gpd_df_network, 22, 'up', 6))
-    print('__________________________________________________')
-    print(find_edge_nodes(gpd_df_node, gpd_df_network, 10, 'down', 6))
-
-
-def test_calc_distance():
-    # 倒过来也可以成立
-    print(calc_distance(gpd_df_node, gpd_df_network, 10, 7))
-
-
-def test_down_array():
-    print(line_min_dist(gpd_df_node, gpd_df_network)[1])
-
-
-def test_pairs():
-    print(build_graph(line_min_dist(gpd_df_node, gpd_df_network)[0]))
+def find_main_and_tributary(gpd_nodes_df, gpd_network_df, start: int, target: int):
+    geom_array, new_geom_array, index_geom_array = line_min_dist(gpd_nodes_df, gpd_network_df)
+    graph = build_graph(geom_array)
+    cur_index = np.argwhere(new_geom_array == index_geom_array[start])[0][0]
+    target_index = np.argwhere(new_geom_array == index_geom_array[target])[0][0]
+    start_true_index = len(geom_array) - len(new_geom_array) + cur_index
+    target_true_index = len(geom_array) - len(new_geom_array) + target_index
+    start_line = graph.get_all_shortest_paths(v=start_true_index, mode='in')
+    sum_length_list = []
+    for path in start_line:
+        path_leng_sum = 0
+        for line in path:
+            path_leng_sum += (geom_array[line]).length
+        sum_length_list.append(path_leng_sum)
+    max_start_line = start_line[np.argmax(sum_length_list)]
+    if target_true_index in max_start_line:
+        return 'station '+str(target)+' is in mainstream of upstream basin of station '+str(start)
+    elif target_true_index not in np.all(np.array(start_line, dtype=object)):
+        return 'station '+str(target)+' is not found in upstream basin of station '+str(start)
+    else:
+        return 'station '+str(target)+' is in tributary of upstream basin of station '+str(start)
