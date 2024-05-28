@@ -1,6 +1,6 @@
 from os.path import relpath
 
-from hydro_topo.ig_path import find_edge_nodes, calc_distance, line_min_dist, build_graph, find_main_and_tributary
+from hydrotopo.ig_path import find_edge_nodes, calc_distance, line_min_dist, build_graph, find_main_and_tributary
 import geopandas as gpd
 import pyogrio  # noqa:401
 
