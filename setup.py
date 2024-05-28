@@ -16,23 +16,21 @@ if sys.argv[-1] == 'publish':
     sys.exit()
 
 setup(
-    name='dijkstra_conda',
-    version=''.join(random.sample(string.digits, 8)),
-    description='A test project',
-    entry_points={'console_scripts': ['calcstream = dijkstra_conda.cli:main']},
+    name='hydro_topo',
+    version='0.0.2',
+    description='A project which find topologic relations among stations along rivers',
+    entry_points={'console_scripts': ['calcstream = hydro_topo.cli:main']},
     long_description='https://readthedocs.org/projects/calctest/',
-    author='dijkstra_conda-test',
-    url='https://github.com/iHeadWater/dijkstra-conda',
-    packages=[
-        'dijkstra_conda',
-    ],
-    package_dir={'dijkstra_conda': 'dijkstra_conda'},
+    author='forestbat',
+    url='https://github.com/iHeadWater/HydroTopo',
+    packages=['hydro_topo'],
+    package_dir={'hydro_topo': 'hydro_topo'},
     include_package_data=True,
     install_requires=['geopandas>=0.12.2', 'pytest>=7.1.3', 'setuptools>=63.4.1', 'click>=8.1.3', 'pandas>=1.4.3',
                       'shapely>=2.0.1', 'pyogrio>=0.4.2', 'igraph>=0.10.4'],
     license='MIT',
     zip_safe=False,
-    keywords='dijkstra_conda',
+    keywords='hydro_topo',
     classifiers=[
         'Development Status :: 2 - Pre-Alpha',
         'Intended Audience :: Developers',
