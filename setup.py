@@ -16,21 +16,21 @@ if sys.argv[-1] == 'publish':
     sys.exit()
 
 setup(
-    name='hydro_topo',
-    version='0.0.2',
+    name='hydrotopo',
+    version='0.0.1',
     description='A project which find topologic relations among stations along rivers',
-    entry_points={'console_scripts': ['calcstream = hydro_topo.cli:main']},
+    entry_points={'console_scripts': ['calcstream = hydrotopo.cli:main']},
     long_description='https://readthedocs.org/projects/calctest/',
     author='forestbat',
     url='https://github.com/iHeadWater/HydroTopo',
-    packages=['hydro_topo'],
-    package_dir={'hydro_topo': 'hydro_topo'},
+    packages=['hydrotopo'],
+    package_dir={'hydrotopo': 'hydrotopo'},
     include_package_data=True,
     install_requires=['geopandas>=0.12.2', 'pytest>=7.1.3', 'setuptools>=63.4.1', 'click>=8.1.3', 'pandas>=1.4.3',
                       'shapely>=2.0.1', 'pyogrio>=0.4.2', 'igraph>=0.10.4'],
     license='MIT',
     zip_safe=False,
-    keywords='hydro_topo',
+    keywords='hydrotopo',
     classifiers=[
         'Development Status :: 2 - Pre-Alpha',
         'Intended Audience :: Developers',
