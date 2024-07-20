@@ -144,7 +144,7 @@ def calc_distance(gpd_nodes_df, gpd_network_df, start: int, end: int):
     len_list = []
     for path in paths:
         total_len = shapely.distance(gpd_nodes_df.geometry[start], geom_array[path[0]])
-        for number in path:
+        for number in path[:-1]:
             total_len += (geom_array[number]).length
         total_len += shapely.distance(gpd_nodes_df.geometry[end], geom_array[path[-1]])
         len_list.append(total_len)

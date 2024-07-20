@@ -17,7 +17,9 @@ def test_upper_nodes():
 
 def test_calc_distance():
     # 倒过来也可以成立
-    print(calc_distance(gpd_df_node, gpd_df_network, 10, 7))
+    print()
+    for sta in range(1, 16):
+        print(calc_distance(gpd_df_node, gpd_df_network, sta, 0))
 
 
 def test_down_array():
