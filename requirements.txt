@@ -1,5 +1,5 @@
 setuptools~=68.2.0
 click~=8.1.7
 geopandas~=0.14.3
-numpy~=1.26.4
-shapely~=2.0.3
+numpy==1.26.4
+shapely==2.0.1
