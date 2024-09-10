@@ -106,29 +106,30 @@ def find_edge_nodes(gpd_nodes_df, gpd_network_df, station_index: int, switch='up
     cur_index = np.argwhere(new_geom_array == index_geom_array[station_index])[0][0]
     true_index = len(geom_array) - len(new_geom_array) + cur_index
     # paths里面的是元素所在的（顶点）标号，而非元素本身
+    # new_geom_array在geom_array中索引定然>=len(new_geom_array)-len(new_geom_array)
+    # 所以可以用这一点筛选出没有被切分过的线
     if switch == 'up':
         paths = graph.get_all_shortest_paths(v=true_index, mode='in')
-        sta_lists = []
-        for path in paths:
-            sta_list = []
-            for line in path:
-                sta_index = np.argwhere(index_geom_array == geom_array[line])
-                if len(sta_index) > 0:
-                    sta_list.append(sta_index[0][0])
-            sta_list.reverse()
-            sta_lists.append(sta_list[-cutoff:])
     elif switch == 'down':
         paths = graph.get_all_shortest_paths(v=true_index, mode='out')
-        sta_lists = []
-        for path in paths:
-            sta_list = []
-            for line in path:
-                sta_index = np.argwhere(index_geom_array == geom_array[line])
+    else:
+        paths = [[]]
+    sta_lists = []
+    for path in paths:
+        sta_list = []
+        for line in path:
+            if line >= len(geom_array) - len(new_geom_array):
+                new_line_index = line - len(geom_array) + len(new_geom_array)
+                sta_index = np.argwhere(index_geom_array == new_geom_array[new_line_index])
                 if len(sta_index) > 0:
                     sta_list.append(sta_index[0][0])
+        if switch == 'up':
+            sta_list.reverse()
+            sta_lists.append(sta_list[-cutoff:])
+        elif switch == 'down':
             sta_lists.append(sta_list[:cutoff])
-    else:
-        sta_lists = []
+        else:
+            sta_lists = [[]]
     return np.unique(np.array(sta_lists, dtype=object))
 
 

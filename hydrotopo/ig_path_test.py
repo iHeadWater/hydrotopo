@@ -1,12 +1,10 @@
-from os.path import relpath
-
 from hydrotopo.ig_path import find_edge_nodes, calc_distance, line_min_dist, build_graph, find_main_and_tributary
 import geopandas as gpd
 import pyogrio  # noqa:401
 
 
-gpd_df_node = gpd.read_file(relpath('test_data/near_changchun_dots.shp'), engine='pyogrio')
-gpd_df_network = gpd.read_file(relpath('test_data/near_changchun_cut.shp'), engine='pyogrio')
+gpd_df_node = gpd.read_file('test_data/near_changchun_dots.shp', engine='pyogrio')
+gpd_df_network = gpd.read_file('test_data/near_changchun_cut.shp', engine='pyogrio')
 
 
 def test_upper_nodes():
