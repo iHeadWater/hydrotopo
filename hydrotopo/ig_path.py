@@ -182,7 +182,11 @@ def find_edge_nodes_bulk_up(gpd_nodes_df, gpd_network_df, station_indexes, cutof
     station_dict = {}
     # 当前站点所对应线索引
     for station_index in station_indexes:
-        cur_index = np.argwhere(shapely.equals(new_geom_array, index_geom_array[station_index]))[0][0]
+        try:
+            cur_index = np.argwhere(shapely.equals(new_geom_array, index_geom_array[station_index]))[0][0]
+        except IndexError:
+            station_dict[station_index] = []
+            continue
         true_index = len(geom_array) - len(new_geom_array) + cur_index
         paths = graph.get_all_shortest_paths(v=true_index, mode='in')
         sta_lists = []

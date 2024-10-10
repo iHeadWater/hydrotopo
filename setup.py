@@ -15,7 +15,7 @@ if sys.argv[-1] == 'publish':
 
 setup(
     name='hydrotopo',
-    version='0.0.5',
+    version='0.0.6',
     description='A project which find topologic relations among stations along rivers',
     entry_points={'console_scripts': ['calcstream = hydrotopo.cli:main']},
     long_description='https://readthedocs.org/projects/calctest/',
