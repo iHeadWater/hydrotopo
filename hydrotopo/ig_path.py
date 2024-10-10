@@ -173,3 +173,29 @@ def find_main_and_tributary(gpd_nodes_df, gpd_network_df, start: int, target: in
         return 'station '+str(target)+' is not found in upstream basin of station '+str(start)
     else:
         return 'station '+str(target)+' is in tributary of upstream basin of station '+str(start)
+
+
+# 用来大批量寻找上游节点的特化方法
+def find_edge_nodes_bulk_up(gpd_nodes_df, gpd_network_df, station_indexes, cutoff: int = 4):
+    geom_array, new_geom_array, index_geom_array = line_min_dist(gpd_nodes_df, gpd_network_df)
+    graph = build_graph(geom_array)
+    station_dict = {}
+    # 当前站点所对应线索引
+    for station_index in station_indexes:
+        cur_index = np.argwhere(shapely.equals(new_geom_array, index_geom_array[station_index]))[0][0]
+        true_index = len(geom_array) - len(new_geom_array) + cur_index
+        paths = graph.get_all_shortest_paths(v=true_index, mode='in')
+        sta_lists = []
+        for path in paths:
+            sta_list = []
+            for line in path:
+                if line >= len(geom_array) - len(new_geom_array):
+                    new_line_index = line - len(geom_array) + len(new_geom_array)
+                    sta_index = np.argwhere(shapely.equals(index_geom_array, new_geom_array[new_line_index]))
+                    if len(sta_index) > 0:
+                        sta_list.append(sta_index[0][0])
+            sta_list.reverse()
+            sta_lists.append(sta_list[-cutoff:])
+        paths = np.unique(np.array(sta_lists, dtype=object))
+        station_dict[station_index] = paths
+    return station_dict
