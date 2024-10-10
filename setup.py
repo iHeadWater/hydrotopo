@@ -15,7 +15,7 @@ if sys.argv[-1] == 'publish':
 
 setup(
     name='hydrotopo',
-    version='0.0.3',
+    version='0.0.4',
     description='A project which find topologic relations among stations along rivers',
     entry_points={'console_scripts': ['calcstream = hydrotopo.cli:main']},
     long_description='https://readthedocs.org/projects/calctest/',
@@ -34,9 +34,6 @@ setup(
         'Intended Audience :: Developers',
         'License :: OSI Approved :: MIT License',
         'Natural Language :: English',
-        "Programming Language :: Python :: 3.6",
-        "Programming Language :: Python :: 3.7",
-        "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3.11",
