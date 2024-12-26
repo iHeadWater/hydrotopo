@@ -20,11 +20,11 @@ def main(nodes_path, river_path, cur_sta, up_sta, cutoff, upstream, downstream):
     nodes_gpd = gpd.read_file(input_node_file_shp)
     network_gpd = gpd.read_file(input_network_file_shp)
     if upstream is True:
-        find_edge_nodes(nodes_gpd, network_gpd, cur_sta, 'up', cutoff)
+        click.echo(str(find_edge_nodes(nodes_gpd, network_gpd, cur_sta, 'up', cutoff)))
     elif downstream is True:
-        find_edge_nodes(nodes_gpd, network_gpd, cur_sta, 'down', cutoff)
+        click.echo(str(find_edge_nodes(nodes_gpd, network_gpd, cur_sta, 'down', cutoff)))
     if up_sta is not None:
-        find_main_and_tributary(nodes_gpd, network_gpd, cur_sta, up_sta)
+        click.echo(str(find_main_and_tributary(nodes_gpd, network_gpd, cur_sta, up_sta)))
 
 
 if __name__ == '__main__':

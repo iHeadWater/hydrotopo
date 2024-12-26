@@ -15,7 +15,7 @@ if sys.argv[-1] == 'publish':
 
 setup(
     name='hydrotopo',
-    version='0.0.8',
+    version='0.0.9',
     description='A project which find topologic relations among stations along rivers',
     entry_points={'console_scripts': ['calcstream = hydrotopo.cli:main']},
     long_description='https://readthedocs.org/projects/calctest/',
@@ -24,7 +24,7 @@ setup(
     packages=['hydrotopo'],
     package_dir={'hydrotopo': 'hydrotopo'},
     include_package_data=True,
-    install_requires=['geopandas>=0.12.2', 'pytest>=7.1.3', 'setuptools>=63.4.1', 'click>=8.1.3', 'pandas>=1.4.3',
+    install_requires=['geopandas>=0.12.2', 'pytest>=7.1.3', 'setuptools>=70.0.0', 'click>=8.1.3', 'pandas>=1.4.3',
                       'shapely>=2.0.1', 'pyogrio>=0.4.2', 'igraph>=0.10.4'],
     license='MIT',
     zip_safe=False,
