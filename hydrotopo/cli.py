@@ -2,8 +2,7 @@ import os
 import click
 import geopandas as gpd
 
-from hydrotopo.ig_path import find_main_and_tributary
-from ig_path import find_edge_nodes
+from hydrotopo.ig_path import find_main_and_tributary, find_edge_nodes
 
 
 @click.command(context_settings=dict(help_option_names=['-h', '--help']))
