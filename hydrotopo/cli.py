@@ -1,16 +1,18 @@
 import os
 import click
 import geopandas as gpd
-from .ig_path import find_edge_nodes
+
+from hydrotopo.ig_path import find_main_and_tributary
+from ig_path import find_edge_nodes
 
 
 @click.command(context_settings=dict(help_option_names=['-h', '--help']))
 @click.option('--nodes_path', help='path of nodes shape file')
 @click.option('--river_path', help='path of river vector shape file')
-@click.option('--cur_sta', help='number of current station')
-@click.option('--up_sta', help='number of station which will be judge in mainstream or tributary in upstream '
+@click.option('--cur_sta', type=int, help='number of current station')
+@click.option('--up_sta', type=int, help='number of station which will be judge in mainstream or tributary in upstream '
                                'watershed of current station')
-@click.option('--cutoff', default=2147483647, help='amount of stations which user want to limit')
+@click.option('--cutoff', type=int, default=2147483647, help='amount of stations which user want to limit')
 @click.option('--upstream', default=False, help='output upstream stations graph of current station')
 @click.option('--downstream', default=False, help='output list of downstream stations of current station')
 def main(nodes_path, river_path, cur_sta, up_sta, cutoff, upstream, downstream):
@@ -22,6 +24,8 @@ def main(nodes_path, river_path, cur_sta, up_sta, cutoff, upstream, downstream):
         find_edge_nodes(nodes_gpd, network_gpd, cur_sta, 'up', cutoff)
     elif downstream is True:
         find_edge_nodes(nodes_gpd, network_gpd, cur_sta, 'down', cutoff)
+    if up_sta is not None:
+        find_main_and_tributary(nodes_gpd, network_gpd, cur_sta, up_sta)
 
 
 if __name__ == '__main__':
