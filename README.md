@@ -2,7 +2,7 @@
 
 A simple method to get topogical relations among hydrological stations from points and river network's shapefile
 
-如何运行
+How to Run
 ------
 Open command line interface, run command `pip install dijkstra-conda==0.0.6`.
 
@@ -22,7 +22,7 @@ Options:
   -h, --help         Show this message and exit
 ```
 
-示例指令1：
+Example Command：
 
 `calcstream --nodes_path C:\Users\UserName\Desktop\test_nodes.shp --river_path C:\Users\UserName\Desktop\test_river.shp --cur_sta 0 --upstream True --cutoff 6`
 
