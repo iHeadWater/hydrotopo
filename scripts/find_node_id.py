@@ -1,7 +1,7 @@
 """
 Author: Wenyu Ouyang
 Date: 2025-02-01 08:18:13
-LastEditTime: 2025-02-02 07:11:47
+LastEditTime: 2025-02-02 07:50:59
 LastEditors: Wenyu Ouyang
 Description: find the STCD of the nodes according to the index file
 FilePath: \hydrotopo\scripts\find_node_id.py
@@ -51,31 +51,41 @@ print(f"STCD 数据已保存到 {output_file}")
 # 每一行都是树的一个分支，我想根据其经纬度标出其位置，然后上下游之间连接成线
 # 创建一个新的 GeoDataFrame 用于存储线条
 lines_gdf = gpd.GeoDataFrame(columns=["geometry"], crs=nodes_gpd.crs)
+points_gdf = gpd.GeoDataFrame(columns=["STCD", "NAME", "geometry"], crs=nodes_gpd.crs)
+
 for branch in stcd_data:
     # 创建一个新的 GeoDataFrame 用于存储站点位置
     gdf = gpd.GeoDataFrame(columns=["STCD", "NAME", "geometry"])
     for stcd in branch:
         row = nodes_gpd[nodes_gpd["STCD"].str.strip() == list(stcd.keys())[0].strip()]
         if not row.empty:
-            new_row = pd.DataFrame(
+            new_row = gpd.GeoDataFrame(
                 [
                     {
                         "STCD": list(stcd.keys())[0].strip(),
                         "NAME": list(stcd.values())[0].strip(),
                         "geometry": row.geometry.values[0],
                     }
-                ]
+                ],
+                crs=nodes_gpd.crs,
             )
             gdf = pd.concat([gdf, new_row], ignore_index=True)
+            points_gdf = pd.concat([points_gdf, new_row], ignore_index=True)
     # 创建线条
     if len(gdf) > 1:
         line = LineString(gdf.geometry.tolist())
         new_line_gdf = gpd.GeoDataFrame([{"geometry": line}], crs=nodes_gpd.crs)
         lines_gdf = pd.concat([lines_gdf, new_line_gdf], ignore_index=True)
 
+# delete duplicate points
+points_gdf = points_gdf.drop_duplicates(subset=["STCD"])
 line_shapefile = project_dir / "results" / "station_connections"
 if not line_shapefile.exists():
     # 保存线条到 shapefile
     lines_gdf.to_file(line_shapefile)
-
+point_shapefile = project_dir / "results" / "station_points"
+if not point_shapefile.exists():
+    # 保存站点到 shapefile
+    points_gdf.to_file(point_shapefile, encoding="utf-8")
 print(f"线条已保存到 {line_shapefile}")
+print(f"站点已保存到 {point_shapefile}")
