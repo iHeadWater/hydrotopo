@@ -16,7 +16,10 @@ import geopandas as gpd
 project_dir = Path(os.path.abspath(__file__)).parent.parent
 data_dir = project_dir / "data"
 result_dir = project_dir / "results"
-node_file = data_dir / "full_rr_stations_info" / "full_rr_stations_info.shp"
+sta_type = "RR"
+node_file = (
+    data_dir / f"{sta_type.lower()}_stations" / f"{sta_type.lower()}_stations.shp"
+)
 river_file = result_dir / "northeast_rivers" / "northeast_rivers.shp"
 nodes_gpd = gpd.read_file(node_file)
 network_gpd = gpd.read_file(river_file)

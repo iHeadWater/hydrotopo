@@ -1,7 +1,7 @@
 """
 Author: Wenyu Ouyang
 Date: 2025-02-01 08:18:13
-LastEditTime: 2025-02-02 07:50:59
+LastEditTime: 2025-02-02 08:52:48
 LastEditors: Wenyu Ouyang
 Description: find the STCD of the nodes according to the index file
 FilePath: \hydrotopo\scripts\find_node_id.py
@@ -20,9 +20,21 @@ from hydroutils import hydro_file
 project_dir = Path(os.path.abspath(__file__)).parent.parent
 data_dir = project_dir / "data"
 result_dir = project_dir / "results"
-node_file = data_dir / "full_rr_stations_info" / "full_rr_stations_info.shp"
-index_file = result_dir / "upstream_station_lst.json"  # 假设索引文件名为 index_file.txt
-output_file = result_dir / "stcd_output.json"
+sta_type = "RR"
+node_file = (
+    data_dir / f"{sta_type.lower()}_stations" / f"{sta_type.lower()}_stations.shp"
+)
+cur_sta = 2172
+index_file = (
+    result_dir / f"{cur_sta}_upstream_{sta_type}_station_lst.json"
+)  # 假设索引文件名为 index_file.txt
+output_file = result_dir / f"{cur_sta}_upstream_{sta_type}_stations_stcd.json"
+line_shapefile = (
+    project_dir / "results" / f"{cur_sta}_upstream_{sta_type}_station_connections"
+)
+point_shapefile = (
+    project_dir / "results" / f"{cur_sta}_upstream_{sta_type}_station_points"
+)
 
 # 读取 GeoDataFrame
 nodes_gpd = gpd.read_file(node_file)
@@ -79,11 +91,9 @@ for branch in stcd_data:
 
 # delete duplicate points
 points_gdf = points_gdf.drop_duplicates(subset=["STCD"])
-line_shapefile = project_dir / "results" / "station_connections"
 if not line_shapefile.exists():
     # 保存线条到 shapefile
     lines_gdf.to_file(line_shapefile)
-point_shapefile = project_dir / "results" / "station_points"
 if not point_shapefile.exists():
     # 保存站点到 shapefile
     points_gdf.to_file(point_shapefile, encoding="utf-8")

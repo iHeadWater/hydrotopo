@@ -1,7 +1,7 @@
 """
 Author: Wenyu Ouyang
 Date: 2025-01-28 12:27:59
-LastEditTime: 2025-01-31 11:54:00
+LastEditTime: 2025-02-02 08:44:28
 LastEditors: Wenyu Ouyang
 Description: try to use cli.py to run the function
 FilePath: \hydrotopo\scripts\calcstream.py
@@ -22,7 +22,11 @@ from hydrotopo.ig_path import find_main_and_tributary, find_edge_nodes
 project_dir = Path(os.path.abspath(__file__)).parent.parent
 data_dir = project_dir / "data"
 result_dir = project_dir / "results"
-node_file = data_dir / "full_rr_stations_info" / "full_rr_stations_info.shp"
+cur_sta_index = 2172
+sta_type = "RR"
+node_file = (
+    data_dir / f"{sta_type.lower()}_stations" / f"{sta_type.lower()}_stations.shp"
+)
 river_file = result_dir / "northeast_rivers" / "northeast_rivers.shp"
 
 
@@ -31,7 +35,9 @@ river_file = result_dir / "northeast_rivers" / "northeast_rivers.shp"
 @click.option(
     "--river_path", help="path of river vector shape file", default=river_file
 )
-@click.option("--cur_sta", type=int, help="Index of current station", default=2172)
+@click.option(
+    "--cur_sta", type=int, help="Index of current station", default=cur_sta_index
+)
 @click.option(
     "--up_sta",
     type=int,
@@ -71,9 +77,9 @@ def main(nodes_path, river_path, cur_sta, up_sta, cutoff, upstream, downstream):
         )
         # save the result to a file
         result_dir = project_dir / "results"
-        save_shp_file = result_dir / "upstream_station_lst.json"
-        if not save_shp_file.exists():
-            serialize_json_np(upstream_station_lst, save_shp_file)
+        save_json_file = result_dir / f"{cur_sta}_upstream_{sta_type}_station_lst.json"
+        if not save_json_file.exists():
+            serialize_json_np(upstream_station_lst, save_json_file)
         click.echo(str(upstream_station_lst))
     elif downstream is True:
         click.echo(
