@@ -1,7 +1,7 @@
 """
 Author: Wenyu Ouyang
 Date: 2025-01-28 12:27:59
-LastEditTime: 2025-02-03 07:35:54
+LastEditTime: 2025-02-03 07:48:51
 LastEditors: Wenyu Ouyang
 Description: try to use cli.py to run the function
 FilePath: \hydrotopo\scripts\calcstream.py
@@ -92,18 +92,18 @@ if __name__ == "__main__":
     project_dir = Path(os.path.abspath(__file__)).parent.parent
     data_dir = project_dir / "data"
     result_dir = project_dir / "results"
-    sta_type_lst = ["RR", "ZZ"]
+    sta_type_lst = ["RR", "ZZ", "ZQ"]
     # 9 main reservoirs in Liaoning: 石佛寺，柴河，清河，闹德海，大伙房，观音阁，葠窝水库，汤河水库，白石水库
     target_stcd_lst = [
         "20600340",
-        # "20800900",
-        # "20810200",
-        # "20910930",
-        # "21100150",
-        # "21110150",
-        # "21110400",
-        # "21113800",
-        # "21200510",
+        "20800900",
+        "20810200",
+        "20910930",
+        "21100150",
+        "21110150",
+        "21110400",
+        "21113800",
+        "21200510",
     ]
     river_file = result_dir / "northeast_rivers" / "northeast_rivers.shp"
     new_node_dir = result_dir / "tmp_nodes"
@@ -128,7 +128,8 @@ if __name__ == "__main__":
                 # update cur_sta, use the index of the new station
                 cur_sta = nodes_gpd_new[nodes_gpd_new["STCD"] == stcd].index[0]
             else:
-                new_node_file = node_file
+                # copy the file to the new one
+                nodes_gpd.to_file(new_node_file, encoding="utf-8")
                 cur_sta = cur_sta[0]
             up_save_file = result_dir / f"{stcd}_upstream_{sta_type}_station_lst.json"
             calcstream(
