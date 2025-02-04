@@ -1,7 +1,7 @@
 """
 Author: Wenyu Ouyang
 Date: 2025-01-28 12:27:59
-LastEditTime: 2025-02-03 08:39:23
+LastEditTime: 2025-02-04 15:35:29
 LastEditors: Wenyu Ouyang
 Description: try to use cli.py to run the function
 FilePath: \hydrotopo\scripts\calcstream.py
@@ -93,7 +93,7 @@ if __name__ == "__main__":
     project_dir = Path(os.path.abspath(__file__)).parent.parent
     data_dir = project_dir / "data"
     result_dir = project_dir / "results"
-    sta_type_lst = ["ZQ"]
+    sta_type_lst = ["RR", "ZZ"]
     # 9 main reservoirs in Liaoning: 石佛寺，柴河，清河，闹德海，大伙房，观音阁，葠窝水库，汤河水库，白石水库
     target_stcd_lst = [
         "20600340",

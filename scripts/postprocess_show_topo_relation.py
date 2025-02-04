@@ -1,10 +1,10 @@
 """
 Author: Wenyu Ouyang
 Date: 2025-02-01 08:18:13
-LastEditTime: 2025-02-02 08:52:48
+LastEditTime: 2025-02-04 15:33:19
 LastEditors: Wenyu Ouyang
 Description: find the STCD of the nodes according to the index file
-FilePath: \hydrotopo\scripts\find_node_id.py
+FilePath: \hydrotopo\scripts\postprocess_show_topo_relation.py
 Copyright (c) 2023-2024 Wenyu Ouyang. All rights reserved.
 """
 
@@ -46,6 +46,9 @@ def postprocess(stcd="20600340", sta_type="RR"):
     # 根据索引找到对应的 STCD
     stcd_data_ = []
     for index_list in index_data:
+        if not isinstance(index_list, list):
+            # sometimes the index_list is not a list only a single number when there is only one station
+            index_list = [index_list]
         stcd_list = [nodes_gpd.loc[idx, "STCD"] for idx in index_list]
         stcd_data_.append(stcd_list)
     # find the name of the station according to the STCD-name mapping file
@@ -107,10 +110,10 @@ def postprocess(stcd="20600340", sta_type="RR"):
 
 
 if __name__ == "__main__":
-    sta_type_lst = ["RR", "ZZ", "ZQ"]
+    sta_type_lst = ["RR", "ZZ"]
     # 9 main reservoirs in Liaoning: 石佛寺，柴河，清河，闹德海，大伙房，观音阁，葠窝水库，汤河水库，白石水库
     target_stcd_lst = [
-        "20600340",
+        # "20600340",
         "20800900",
         "20810200",
         "20910930",
