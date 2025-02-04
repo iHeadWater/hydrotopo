@@ -1,10 +1,10 @@
 """
 Author: Wenyu Ouyang
 Date: 2025-01-29 08:27:30
-LastEditTime: 2025-01-29 08:49:09
+LastEditTime: 2025-02-04 11:41:25
 LastEditors: Wenyu Ouyang
 Description: cut a small shape file from a large shape file
-FilePath: \hydrotopo\scripts\cut_shape.py
+FilePath: \hydrotopo\scripts\preprocess_1_cut_shape.py
 Copyright (c) 2023-2024 Wenyu Ouyang. All rights reserved.
 """
 
@@ -16,6 +16,8 @@ from shapely.geometry import box
 project_dir = Path(os.path.abspath(__file__)).parent.parent
 data_dir = project_dir / "data"
 river_file = data_dir / "HydroRIVERS_v10_as_shp" / "HydroRIVERS_v10_as.shp"
+if not river_file.exists():
+    raise FileNotFoundError("Please give a valid path to the river shape file")
 # 加载large河网数据
 rivers = gpd.read_file(river_file)
 
@@ -34,6 +36,8 @@ northeast_rivers = rivers[rivers.intersects(northeast_boundary.unary_union)]
 
 # 保存结果到新的 Shapefile
 result_dir = project_dir / "results"
+if not result_dir.exists():
+    result_dir.mkdir()
 save_shp_file = result_dir / "northeast_rivers"
 if not save_shp_file.exists():
     northeast_rivers.to_file(save_shp_file, encoding="utf-8")

@@ -9,6 +9,22 @@ from shapely.ops import split, nearest_points
 
 
 def get_extrapolated_line(source_coord, coord, extrapolate_ratio):
+    """get the extrapolated line from the source point to the target point
+
+    Parameters
+    ----------
+    source_coord :
+        the source point
+    coord : _type_
+        the target point
+    extrapolate_ratio : _type_
+        the ratio to extrapolate
+
+    Returns
+    -------
+    _type_
+        _description_
+    """
     source = Point(source_coord)
     p2 = Point(coord)
     c = (
@@ -19,8 +35,29 @@ def get_extrapolated_line(source_coord, coord, extrapolate_ratio):
 
 
 def line_min_dist(gpd_node_df: GeoDataFrame, gpd_line_df: GeoDataFrame):
+    """_summary_
+
+    Parameters
+    ----------
+    gpd_node_df : GeoDataFrame
+        the GeoDataFrame containing the nodes
+    gpd_line_df : GeoDataFrame
+        the GeoDataFrame containing the lines
+
+    Returns
+    -------
+    tuple
+        geom_array: np.ndarray which contains all the lines
+        new_geom_array: np.ndarray which contains the lines that are split
+        index_geom_array: np.ndarray which contains the lines that are split and the index of the original line
+    """
+    # The sjoin_nearest function will find the nearest geometry in gpd_line_df
+    # for each geometry in gpd_node_df and
+    # add this nearest geometry information to gpd_node_df
     gpd_min_line_df = gpd.sjoin_nearest(gpd_node_df, gpd_line_df, "left")
+    # sometimes the river segment is repeated so that we just choose one
     gpd_min_line_df = gpd_min_line_df.loc[~gpd_min_line_df.index.duplicated()]
+    # For each geometry in gpd_node_df, the index_right column records the index of the nearest geometry in gpd_line_df.
     index_right = gpd_min_line_df["index_right"].to_numpy().astype(int)
     origin_geom_array = gpd_line_df.geometry.to_numpy()
     geom_array = np.delete(origin_geom_array, index_right)
@@ -53,7 +90,7 @@ def line_min_dist(gpd_node_df: GeoDataFrame, gpd_line_df: GeoDataFrame):
             min_lines = split(origin_line, multiline)
             geom_list = list(min_lines.geoms)
             new_geom_array = np.append(new_geom_array, geom_list)
-            for key in inter_dict.keys():
+            for key in inter_dict:
                 for cursor in range(1, min(len(geom_list), len(point_ids) + 1)):
                     if inter_dict[key].geom_type == "Point":
                         checkpoint = inter_dict[key].coords[0]
@@ -68,30 +105,46 @@ def line_min_dist(gpd_node_df: GeoDataFrame, gpd_line_df: GeoDataFrame):
 
 
 def sure_nearest_point(source_coord: Point, origin_line: LineString):
+    """find the nearest point on the line to the source point
+
+    Parameters
+    ----------
+    source_coord : Point
+        the source point
+    origin_line : LineString
+        the line to find the nearest point on it
+
+    Returns
+    -------
+    Point
+        the nearest point on the line to the source point
+    """
     nearest_p = nearest_points(source_coord, origin_line)[1]
     point_src = origin_line.coords[0]
     point_dst = origin_line.coords[-1]
-    point_neigh = origin_line.coords[1]
     point_last = origin_line.coords[-2]
     if (nearest_p.x == point_src[0]) & (nearest_p.y == point_src[1]):
-        nearest_point = Point(
-            (point_src[0] + point_neigh[0]) / 2, (point_src[1] + point_neigh[1]) / 2
+        point_neigh = origin_line.coords[1]
+        return Point(
+            (point_src[0] + point_neigh[0]) / 2,
+            (point_src[1] + point_neigh[1]) / 2,
         )
     elif (nearest_p.x == point_dst[0]) & (nearest_p.y == point_dst[1]):
-        nearest_point = Point(
-            (point_dst[0] + point_last[0]) / 2, (point_src[1] + point_last[1]) / 2
+        return Point(
+            (point_dst[0] + point_last[0]) / 2,
+            (point_src[1] + point_last[1]) / 2,
         )
     elif (source_coord.x == nearest_p.x) & (source_coord.y == nearest_p.y):
-        # 如果源点正好在线上，那么投影点就可以是它自身，这时最近点选任何一个点外线都可以，反正交点还是源点
-        nearest_point = Point(
+        # If the source point is exactly on the line, then the projection point can be itself.
+        # In this case, the nearest point can be any point outside the line, as the intersection point will still be the source point.
+        return Point(
             (point_src[0] + point_dst[0]) / 2 + 0.001,
             (point_src[1] + point_dst[1]) / 2 + 0.001,
         )
     else:
-        nearest_point = shapely.line_interpolate_point(
+        return shapely.line_interpolate_point(
             origin_line, shapely.line_locate_point(origin_line, source_coord)
         )
-    return nearest_point
 
 
 def build_graph(geom_array: np.ndarray):
