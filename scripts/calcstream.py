@@ -1,7 +1,7 @@
 """
 Author: Wenyu Ouyang
 Date: 2025-01-28 12:27:59
-LastEditTime: 2025-02-03 07:48:51
+LastEditTime: 2025-02-03 08:39:23
 LastEditors: Wenyu Ouyang
 Description: try to use cli.py to run the function
 FilePath: \hydrotopo\scripts\calcstream.py
@@ -9,10 +9,11 @@ Copyright (c) 2023-2024 Wenyu Ouyang. All rights reserved.
 """
 
 import os
-from pathlib import Path
+import itertools
 import sys
-import geopandas as gpd
 import pandas as pd
+import geopandas as gpd
+from pathlib import Path
 
 from hydroutils.hydro_file import serialize_json_np
 
@@ -92,7 +93,7 @@ if __name__ == "__main__":
     project_dir = Path(os.path.abspath(__file__)).parent.parent
     data_dir = project_dir / "data"
     result_dir = project_dir / "results"
-    sta_type_lst = ["RR", "ZZ", "ZQ"]
+    sta_type_lst = ["ZQ"]
     # 9 main reservoirs in Liaoning: 石佛寺，柴河，清河，闹德海，大伙房，观音阁，葠窝水库，汤河水库，白石水库
     target_stcd_lst = [
         "20600340",
@@ -108,37 +109,36 @@ if __name__ == "__main__":
     river_file = result_dir / "northeast_rivers" / "northeast_rivers.shp"
     new_node_dir = result_dir / "tmp_nodes"
     new_node_dir.mkdir(parents=True, exist_ok=True)
-    for stcd in target_stcd_lst:
-        for sta_type in sta_type_lst:
-            node_file = (
-                data_dir
-                / f"{sta_type.lower()}_stations"
-                / f"{sta_type.lower()}_stations.shp"
-            )
-            nodes_gpd = gpd.read_file(node_file)
-            # find the row index of the target node with its STCD
-            cur_sta = nodes_gpd[nodes_gpd["STCD"] == stcd].index
-            new_node_file = new_node_dir / f"{stcd}_{sta_type}_stations.shp"
-            # if the station is not found, get its info from target_stations.shp and add it to the stations shp
-            if cur_sta is None or len(cur_sta) == 0:
-                target_nodes_gpd = gpd.read_file(result_dir / "target_stations")
-                target_node = target_nodes_gpd[target_nodes_gpd["STCD"] == stcd]
-                nodes_gpd_new = pd.concat([nodes_gpd, target_node], ignore_index=True)
-                nodes_gpd_new.to_file(new_node_file, encoding="utf-8")
-                # update cur_sta, use the index of the new station
-                cur_sta = nodes_gpd_new[nodes_gpd_new["STCD"] == stcd].index[0]
-            else:
-                # copy the file to the new one
-                nodes_gpd.to_file(new_node_file, encoding="utf-8")
-                cur_sta = cur_sta[0]
-            up_save_file = result_dir / f"{stcd}_upstream_{sta_type}_station_lst.json"
-            calcstream(
-                nodes_path=new_node_file,
-                river_path=river_file,
-                cur_sta=cur_sta,
-                up_sta=None,
-                cutoff=2,
-                upstream=True,
-                downstream=False,
-                up_save_file=up_save_file,
-            )
+    for stcd, sta_type in itertools.product(target_stcd_lst, sta_type_lst):
+        node_file = (
+            data_dir
+            / f"{sta_type.lower()}_stations"
+            / f"{sta_type.lower()}_stations.shp"
+        )
+        nodes_gpd = gpd.read_file(node_file)
+        # find the row index of the target node with its STCD
+        cur_sta = nodes_gpd[nodes_gpd["STCD"] == stcd].index
+        new_node_file = new_node_dir / f"{stcd}_{sta_type}_stations.shp"
+        # if the station is not found, get its info from target_stations.shp and add it to the stations shp
+        if cur_sta is None or len(cur_sta) == 0:
+            target_nodes_gpd = gpd.read_file(result_dir / "target_stations")
+            target_node = target_nodes_gpd[target_nodes_gpd["STCD"] == stcd]
+            nodes_gpd_new = pd.concat([nodes_gpd, target_node], ignore_index=True)
+            nodes_gpd_new.to_file(new_node_file, encoding="utf-8")
+            # update cur_sta, use the index of the new station
+            cur_sta = nodes_gpd_new[nodes_gpd_new["STCD"] == stcd].index[0]
+        else:
+            # copy the file to the new one
+            nodes_gpd.to_file(new_node_file, encoding="utf-8")
+            cur_sta = cur_sta[0]
+        up_save_file = result_dir / f"{stcd}_upstream_{sta_type}_station_lst.json"
+        calcstream(
+            nodes_path=new_node_file,
+            river_path=river_file,
+            cur_sta=cur_sta,
+            up_sta=None,
+            cutoff=2,
+            upstream=True,
+            downstream=False,
+            up_save_file=up_save_file,
+        )

@@ -9,10 +9,11 @@ Copyright (c) 2023-2024 Wenyu Ouyang. All rights reserved.
 """
 
 import os
-from pathlib import Path
-import geopandas as gpd
-from shapely.geometry import LineString
+import itertools
 import pandas as pd
+import geopandas as gpd
+from pathlib import Path
+from shapely.geometry import LineString
 
 from hydroutils import hydro_file
 
@@ -106,20 +107,19 @@ def postprocess(stcd="20600340", sta_type="RR"):
 
 
 if __name__ == "__main__":
-    sta_type_lst = ["RR", "ZZ"]
+    sta_type_lst = ["RR", "ZZ", "ZQ"]
     # 9 main reservoirs in Liaoning: 石佛寺，柴河，清河，闹德海，大伙房，观音阁，葠窝水库，汤河水库，白石水库
     target_stcd_lst = [
         "20600340",
-        # "20800900",
-        # "20810200",
-        # "20910930",
-        # "21100150",
-        # "21110150",
-        # "21110400",
-        # "21113800",
-        # "21200510",
+        "20800900",
+        "20810200",
+        "20910930",
+        "21100150",
+        "21110150",
+        "21110400",
+        "21113800",
+        "21200510",
     ]
-    for stcd in target_stcd_lst:
-        for sta_type in sta_type_lst:
-            postprocess(stcd=stcd, sta_type=sta_type)
+    for stcd, sta_type in itertools.product(target_stcd_lst, sta_type_lst):
+        postprocess(stcd=stcd, sta_type=sta_type)
     print("postprocess_find_node_id.py has been executed")
