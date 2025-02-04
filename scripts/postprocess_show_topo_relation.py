@@ -1,7 +1,7 @@
 """
 Author: Wenyu Ouyang
 Date: 2025-02-01 08:18:13
-LastEditTime: 2025-02-04 15:33:19
+LastEditTime: 2025-02-04 18:30:15
 LastEditors: Wenyu Ouyang
 Description: find the STCD of the nodes according to the index file
 FilePath: \hydrotopo\scripts\postprocess_show_topo_relation.py
@@ -110,7 +110,7 @@ def postprocess(stcd="20600340", sta_type="RR"):
 
 
 if __name__ == "__main__":
-    sta_type_lst = ["RR", "ZZ"]
+    sta_type_lst = ["RR", "ZZ", "ZQ"]
     # 9 main reservoirs in Liaoning: 石佛寺，柴河，清河，闹德海，大伙房，观音阁，葠窝水库，汤河水库，白石水库
     target_stcd_lst = [
         # "20600340",

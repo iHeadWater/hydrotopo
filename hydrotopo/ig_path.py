@@ -148,6 +148,18 @@ def sure_nearest_point(source_coord: Point, origin_line: LineString):
 
 
 def build_graph(geom_array: np.ndarray):
+    """_summary_
+
+    Parameters
+    ----------
+    geom_array : np.ndarray
+        _description_
+
+    Returns
+    -------
+    _type_
+        _description_
+    """
     geom_tree = STRtree(geom_array)
     left, right = geom_tree.query(geom_array, predicate="intersects")
     pairs = np.array([left[left != right], right[left != right]]).T
@@ -171,6 +183,26 @@ def find_edge_nodes(
     switch="up",
     cutoff: int = 2147483647,
 ):
+    """_summary_
+
+    Parameters
+    ----------
+    gpd_nodes_df : _type_
+        _description_
+    gpd_network_df : _type_
+        _description_
+    station_index : int
+        _description_
+    switch : str, optional
+        _description_, by default "up"
+    cutoff : int, optional
+        _description_, by default 2147483647
+
+    Returns
+    -------
+    _type_
+        _description_
+    """
     geom_array, new_geom_array, index_geom_array = line_min_dist(
         gpd_nodes_df, gpd_network_df
     )
@@ -211,6 +243,24 @@ def find_edge_nodes(
 
 
 def calc_distance(gpd_nodes_df, gpd_network_df, start: int, end: int):
+    """_summary_
+
+    Parameters
+    ----------
+    gpd_nodes_df : _type_
+        _description_
+    gpd_network_df : _type_
+        _description_
+    start : int
+        _description_
+    end : int
+        _description_
+
+    Returns
+    -------
+    _type_
+        _description_
+    """
     geom_array, new_geom_array, index_geom_array = line_min_dist(
         gpd_nodes_df, gpd_network_df
     )
@@ -293,6 +343,24 @@ def find_main_and_tributary(gpd_nodes_df, gpd_network_df, start: int, target: in
 def find_edge_nodes_bulk_up(
     gpd_nodes_df, gpd_network_df, station_indexes, cutoff: int = 4
 ):
+    """_summary_
+
+    Parameters
+    ----------
+    gpd_nodes_df : _type_
+        _description_
+    gpd_network_df : _type_
+        _description_
+    station_indexes : _type_
+        _description_
+    cutoff : int, optional
+        _description_, by default 4
+
+    Returns
+    -------
+    _type_
+        _description_
+    """
     geom_array, new_geom_array, index_geom_array = line_min_dist(
         gpd_nodes_df, gpd_network_df
     )
