@@ -99,12 +99,10 @@ def postprocess(stcd="20600340", sta_type="RR"):
 
     # delete duplicate points
     points_gdf = points_gdf.drop_duplicates(subset=["STCD"])
-    if not line_shapefile.exists():
-        # 保存线条到 shapefile
-        lines_gdf.to_file(line_shapefile)
-    if not point_shapefile.exists():
-        # 保存站点到 shapefile
-        points_gdf.to_file(point_shapefile, encoding="utf-8")
+    # 保存线条到 shapefile
+    lines_gdf.to_file(line_shapefile)
+    # 保存站点到 shapefile
+    points_gdf.to_file(point_shapefile, encoding="utf-8")
     print(f"线条已保存到 {line_shapefile}")
     print(f"站点已保存到 {point_shapefile}")
 
@@ -114,14 +112,14 @@ if __name__ == "__main__":
     # 9 main reservoirs in Liaoning: 石佛寺，柴河，清河，闹德海，大伙房，观音阁，葠窝水库，汤河水库，白石水库
     target_stcd_lst = [
         # "20600340",
-        "20800900",
-        "20810200",
+        # "20800900",
+        # "20810200",
         "20910930",
-        "21100150",
-        "21110150",
-        "21110400",
-        "21113800",
-        "21200510",
+        # "21100150",
+        # "21110150",
+        # "21110400",
+        # "21113800",
+        # "21200510",
     ]
     for stcd, sta_type in itertools.product(target_stcd_lst, sta_type_lst):
         postprocess(stcd=stcd, sta_type=sta_type)

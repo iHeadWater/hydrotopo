@@ -80,7 +80,7 @@ def calcstream(
             nodes_gpd, network_gpd, cur_sta, "up", cutoff
         )
         # save the result to a file
-        if up_save_file is not None and not up_save_file.exists():
+        if up_save_file is not None:
             serialize_json_np(upstream_station_lst, up_save_file)
         print(upstream_station_lst)
     elif downstream is True:
@@ -97,14 +97,14 @@ if __name__ == "__main__":
     # 9 main reservoirs in Liaoning: 石佛寺，柴河，清河，闹德海，大伙房，观音阁，葠窝水库，汤河水库，白石水库
     target_stcd_lst = [
         # "20600340",
-        "20800900",
-        "20810200",
+        # "20800900",
+        # "20810200",
         "20910930",
-        "21100150",
-        "21110150",
-        "21110400",
-        "21113800",
-        "21200510",
+        # "21100150",
+        # "21110150",
+        # "21110400",
+        # "21113800",
+        # "21200510",
     ]
     river_file = result_dir / "northeast_rivers" / "northeast_rivers.shp"
     new_node_dir = result_dir / "tmp_nodes"
