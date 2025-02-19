@@ -4,7 +4,7 @@ A simple method to get topogical relations among hydrological stations from poin
 
 How to Run
 ------
-Open command line interface, run command `pip install dijkstra-conda==0.0.9`.
+Open command line interface, run command `pip install hydrotopo==0.1.1`.
 
 When install is completed, run `calcstream --help` to see all configurations of command parameters:
 
