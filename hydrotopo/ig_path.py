@@ -6,14 +6,13 @@ from geopandas import GeoDataFrame
 from shapely import STRtree, MultiLineString, intersection
 from shapely.geometry import Point, LineString
 from shapely.ops import split, nearest_points
-
+from shapely import get_coordinates, get_num_coordinates
 
 def get_extrapolated_line(source_coord, coord, extrapolate_ratio):
     source = Point(source_coord)
     p2 = Point(coord)
     c = (source.x + extrapolate_ratio * (p2.x - source.x), source.y + extrapolate_ratio * (p2.y - source.y))
     return LineString([source, c])
-
 
 def line_min_dist(gpd_node_df: GeoDataFrame, gpd_line_df: GeoDataFrame):
     # 根据gpd_node_df，确定gpd_line_df中离站点最近的河网线
@@ -96,8 +95,13 @@ def build_graph(geom_array: np.ndarray):
     left, right = geom_tree.query(geom_array, predicate='intersects')
     pairs = np.array([left[left != right], right[left != right]]).T
     # 无向图要修正成有向图
-    start_points = np.array([geom.coords[0] for geom in geom_array])
-    end_points = np.array([geom.coords[-1] for geom in geom_array])
+    all_coords = get_coordinates(geom_array)
+    counts = get_num_coordinates(geom_array)
+    indices = np.insert(counts.cumsum(), 0, 0)
+    start_indices = indices[:-1]
+    end_indices = indices[1:] - 1
+    start_points = all_coords[start_indices]
+    end_points = all_coords[end_indices]
     # 获取pairs对应的线段对的终点和起点
     end0 = end_points[pairs[:, 0]]
     start1 = start_points[pairs[:, 1]]
@@ -218,77 +222,3 @@ def find_edge_nodes_bulk_up(gpd_nodes_df, gpd_network_df, station_indexes, cutof
         sta_paths = np.unique(np.array(sta_lists, dtype=object))
         station_dict[station_index] = sta_paths
     return station_dict
-
-def filter_sublists(sublists):
-    # 消除首尾相同但中间不同的“辫状水系”
-    groups = {}
-    result = []
-    for sub in sublists:
-        length = len(sub)
-        if length == 0:
-            continue
-        first = sub[0]
-        last = sub[-1]
-        key = length
-        if key not in groups:
-            groups[key] = {(first, last)}
-            result.append(sub)
-        else:
-            if (first, last) not in groups[key]:
-                groups[key].add((first, last))
-                result.append(sub)
-    return result
-
-'''
-# 用现有的流域多边形，修正点图层，使之上游能够成图的站点和流域上有的站点一致
-# 为了让流域和站点号对应，本方法必须指定点图层和流域多边形图层的列名
-# 目前的方法似乎仍不太完善，注释处理
-def fix_upstream_nodes_by_basin(gpd_nodes_df, gpd_network_df, basin_df, basin_ids, node_col_name, basin_col_name, sep='_'):
-    from itertools import chain
-    geom_array, new_geom_array, index_geom_array = line_min_dist(gpd_nodes_df, gpd_network_df)
-    graph = build_graph(geom_array)
-    if sep is not None:
-        basin_names = [name.split(sep)[-1] for name in basin_df.loc[basin_ids][basin_col_name]]
-    else:
-        basin_names = basin_df.loc[basin_ids][basin_col_name]
-    node_basin_ids = gpd_nodes_df.index[gpd_nodes_df[node_col_name].isin(basin_names)].tolist()
-    up_station_dict = find_edge_nodes_bulk_up(gpd_nodes_df, gpd_network_df, node_basin_ids, cutoff=100)
-    # basin_ids: [0...-1]
-    for basin_id in basin_ids:
-        basin_polygon = basin_df.loc[basin_id].geometry
-        basin_nodes = gpd.sjoin(gpd_nodes_df, gpd.GeoDataFrame().set_geometry([basin_polygon]), how='inner').index.tolist()
-        # 对于根据特定basin_id补充的点，basin_id可能靠前，node_id则靠后
-        bname = basin_df[basin_col_name][basin_df.index==basin_id].tolist()[0]
-        try:
-            nid = gpd_nodes_df.index[gpd_nodes_df[node_col_name]==bname.split(sep)[-1]].tolist()[0]
-        except IndexError:
-            continue
-        up_nodes = up_station_dict[nid] if len(up_station_dict[nid]) > 0 else np.array([nid])
-        up_node_list = np.unique(list(chain.from_iterable(up_nodes))) if isinstance(up_nodes[0], list) else up_nodes
-        predicate0, predicate1, predicate2 = predicate(gpd_nodes_df, nid, basin_polygon, up_node_list, basin_nodes)
-        if (predicate0 | predicate1) & predicate2:
-            cur_index = np.argwhere(shapely.equals(new_geom_array, index_geom_array[nid]))[0][0]
-            true_index = len(geom_array) - len(new_geom_array) + cur_index
-            down_nodes = max(graph.get_all_shortest_paths(v=true_index, mode='out'), key=len)
-            for line in down_nodes:
-                test_line = geom_array[line]
-                first_node, second_node = test_line.coords[0], test_line.coords[1]
-                # vec = (second_node.x - first_node.x, second_node.y - first_node.y)
-                norm_vec = (first_node[1] - second_node[1], second_node[0] - first_node[0])
-                factor = 1 if norm_vec[0] <= 0.001 else 0.001 / norm_vec[0]
-                new_coord = (first_node[0] + factor * norm_vec[0], first_node[1] + factor * norm_vec[1])
-                gpd_nodes_df.loc[nid, 'geometry'] = shapely.Point(new_coord)
-                new_up_nodes = find_edge_nodes(gpd_nodes_df, gpd_network_df, nid)
-                up_node_list = np.unique(list(chain.from_iterable(new_up_nodes))) if isinstance(up_nodes[0], list) else up_nodes
-                predicate3 = predicate(gpd_nodes_df, nid, basin_polygon, up_node_list, basin_nodes)[0]
-                predicate4 = predicate(gpd_nodes_df, nid, basin_polygon, up_node_list, basin_nodes)[1]
-                if not (predicate3 | predicate4):
-                    break
-    return gpd_nodes_df
-
-def predicate(gpd_nodes_df, nid, basin_polygon, up_node_list, basin_nodes):
-    predicate0 = (gpd_nodes_df.geometry[nid].within(basin_polygon)) & (len(up_node_list) != len(basin_nodes))
-    predicate1 = (not gpd_nodes_df.geometry[nid].within(basin_polygon)) & (len(up_node_list) < len(basin_nodes)+1)
-    predicate2 = len(basin_nodes) < len(up_node_list)
-    return predicate0, predicate1, predicate2
-'''
