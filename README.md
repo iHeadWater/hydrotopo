@@ -1,10 +1,10 @@
 # station-simulator
 
-A simple method to get topogical relations among hydrological stations from points and river network's shapefile
+A simple method to get topogical relations among hydrological stations from points and river network's shapefile.
 
 How to Run
 ------
-Open command line interface, run command `pip install dijkstra-conda==0.0.9`.
+Open command line interface, run command `pip install hydrotopo==0.1.2`.
 
 When install is completed, run `calcstream --help` to see all configurations of command parameters:
 
@@ -31,3 +31,14 @@ Means: From station 0, calculate upstream stations of it, and you can date back 
 Output result:
 
 ![图片](https://user-images.githubusercontent.com/23413915/194866111-2676da4c-94c5-4550-9a37-996ad4031f54.png)
+
+Cite as
+------
+Yang Wang, Wenyu Ouyang, Jingyuan Huang, Lei Ye, Chi Zhang,
+Automatic analysis method for topological relationship between river network and hydrological stations,
+Environmental Modelling & Software,
+Volume 192,
+2025,
+106558,
+ISSN 1364-8152,
+https://doi.org/10.1016/j.envsoft.2025.106558.
