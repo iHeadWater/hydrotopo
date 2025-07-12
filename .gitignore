@@ -175,4 +175,6 @@ cython_debug/
 
 .vscode/*
 data/*
+!data/near_changchun_*.*
+!data/songliao_cut_single_new.*
 results/*

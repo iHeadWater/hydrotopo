@@ -1,14 +1,31 @@
-from hydrotopo.ig_path import find_edge_nodes, calc_distance, line_min_dist, build_graph, find_main_and_tributary
+"""
+Author: Yang Wang
+Date: 2025-04-16 12:00:39
+LastEditTime: 2025-07-12 17:11:06
+LastEditors: Wenyu Ouyang
+Description: Test hydrotopo.ig_path
+FilePath: /hydrotopo/test/ig_path_test.py
+Copyright (c) 2023-2026 Yang Wang. All rights reserved.
+"""
+
+from hydrotopo.ig_path import (
+    find_edge_nodes,
+    calc_distance,
+    line_min_dist,
+    build_graph,
+    find_main_and_tributary,
+)
 import geopandas as gpd
 import pyogrio  # noqa:401
-gpd_df_node = gpd.read_file('test_data/near_changchun_dots.shp', engine='pyogrio')
-gpd_df_network = gpd.read_file('test_data/near_changchun_cut.shp', engine='pyogrio')
+
+gpd_df_node = gpd.read_file("data/near_changchun_dots.shp", engine="pyogrio")
+gpd_df_network = gpd.read_file("data/near_changchun_cut.shp", engine="pyogrio")
 
 
 def test_upper_nodes():
-    print(find_edge_nodes(gpd_df_node, gpd_df_network, 0, 'up', 6))
-    print('__________________________________________________')
-    print(find_edge_nodes(gpd_df_node, gpd_df_network, 10, 'down', 6))
+    print(find_edge_nodes(gpd_df_node, gpd_df_network, 0, "up", 6))
+    print("__________________________________________________")
+    print(find_edge_nodes(gpd_df_node, gpd_df_network, 10, "down", 6))
 
 
 def test_calc_distance():
@@ -29,7 +46,8 @@ def test_pairs():
 def test_find_main_and_tributary():
     print(find_main_and_tributary(gpd_df_node, gpd_df_network, 10, 7))
 
-r'''
+
+r"""
 def test_move_node_downstream():
     # 在三岔口附近，一些站点会落到离它更近的支流河道上（如06406000），这样会导致上下游失准，必须校正
     # 此外，一些USGS站距离HML站距离过近，需要移动
@@ -40,4 +58,4 @@ def test_move_node_downstream():
     node_col_name, basin_col_name = 'ID', 'BASIN_ID'
     gpd_df = fix_upstream_nodes_by_basin(gpd_nodes_df, gpd_network_df, basins_df, basin_ids, node_col_name, basin_col_name)
     gpd_df.to_file('iowa_usgs_hml_sl_stations_fixed.shp', driver='ESRI Shapefile')
-'''
+"""
